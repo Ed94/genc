@@ -1,0 +1,27 @@
+{
+	"files.associations": {
+		"*.rmd": "markdown",
+		"array": "cpp",
+		"compare": "cpp",
+		"type_traits": "cpp",
+		"utility": "cpp",
+		"xtr1common": "cpp",
+		"xutility": "cpp",
+		"initializer_list": "cpp",
+		"table.h": "c",
+		"iterator": "cpp",
+		"memory": "cpp",
+		"exception": "cpp",
+		"optional": "cpp",
+		"tuple": "cpp",
+		"xmemory": "cpp",
+		"algorithm": "cpp",
+		"limits": "cpp",
+		"concepts": "cpp",
+		"*.rh": "cpp"
+	},
+	"C_Cpp.intelliSenseEngineFallback": "disabled",
+	"mesonbuild.configureOnOpen": true,
+	"C_Cpp.errorSquiggles": "enabled",
+	"godot_tools.scene_file_config": ""
+}
