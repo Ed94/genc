@@ -9,7 +9,7 @@ using namespace gen;
 // TODO : Can easily make all enums + funcs with this...
 Code gen_enum_from_csv( char const* path )
 {
-
+	return CodeInvalid;
 }
 
 Code scan_file( char const* path )
