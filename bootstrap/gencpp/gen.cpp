@@ -5150,9 +5150,21 @@ namespace gen
 
 			while ( currtok.Type != TokType::BraceCurly_Close )
 			{
-				while ( left && ( currtok.Type != TokType::BraceCurly_Close ) )
+				eat( TokType::Identifier);
+
+				if ( currtok.Type == TokType::Operator && currtok.Text[0] == '=' )
 				{
-					eat( currtok.Type );
+					eat( TokType::Operator );
+
+					while ( currtok.Type != TokType::Comma && currtok.Type != TokType::BraceCurly_Close )
+					{
+						eat( currtok.Type );
+					}
+				}
+
+				if ( currtok.Type == TokType::Comma )
+				{
+					eat( TokType::Comma );
 				}
 			}
 
