@@ -1,13 +1,13 @@
 #define GEN_AST_POD_SIZE 128
 #define GEN_AST_ARRSPECS_CAP \
 ( \
-	 AST_POD_Size \
-	 - sizeof(AST*) * 2 \
-	 - sizeof(StringCached) \
-	 - sizeof(CodeT) \
-	 - sizeof(s32) \
+	 GEN_AST_POD_SIZE \
+	 - sizeof(gen_AST*) * 2 \
+	 - sizeof(gen_StringCached) \
+	 - sizeof(gen_CodeT) \
+	 - sizeof(gen_s32) \
 ) \
-/ sizeof(SpecifierT)
+/ sizeof(gen_SpecifierT)
 
 
 typedef struct gen_AST;
