@@ -45,3 +45,27 @@ Push-Location $path_root
 
 	& ninja $args_ninja
 Pop-Location
+
+Push-location $path_project
+# Run meta-program
+	$genc = Join-Path $path_bootstrap_build genc.exe
+
+	Write-Host `nRunning tests...
+	& $genc
+
+# Format generated files
+	Write-Host `nBeginning format...
+	$formatParams = @(
+		'-i'          # In-place
+		'-style=file' # Search for a .clang-format file in the parent directory of the source file.
+		'-verbose'
+	)
+
+	$include = @('genc.h', 'genc.c')
+	$exclude = $null
+
+	$targetFiles = @(Get-ChildItem -Recurse -Path $path_gen -Include $include -Exclude $exclude | Select-Object -ExpandProperty FullName)
+
+	clang-format $formatParams $targetFiles
+	Write-Host "`nFormatting complete"
+Pop-Location

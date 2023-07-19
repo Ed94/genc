@@ -1,4 +1,4 @@
-project( 'test', 'c', 'cpp', default_options : ['buildtype=debug'] )
+project( 'genc', 'cpp', default_options : ['buildtype=debug'] )
 
 includes = include_directories(
 [
@@ -9,10 +9,11 @@ sources = [ '../bootstrap/genc.bootstrap.cpp' ]
 
 if get_option('buildtype').startswith('debug')
 
-  add_project_arguments('-DBuild_Debug', language : ['c', 'cpp'])
+  add_project_arguments('-DBuild_Debug', language : ['cpp'])
 
 endif
 
-add_project_arguments('-Dgen_time', language : ['c', 'cpp'])
+add_project_arguments('-Dgen_time', language : ['cpp'])
 
 executable( 'genc', sources, include_directories : includes )
+
