@@ -1,5 +1,7 @@
 project( 'genc', 'cpp', default_options : ['buildtype=debug'] )
 
+cc = meson.get_compiler('cpp')
+
 includes = include_directories(
 [
 	'../bootstrap'
@@ -13,7 +15,11 @@ if get_option('buildtype').startswith('debug')
 
 endif
 
-add_project_arguments('-Dgen_time', language : ['cpp'])
+add_project_arguments('-DGEN_TIME', language : ['cpp'])
+
+# Necessary for gcc
+if cc.get_id() == 'gcc'
+  add_project_arguments('-Wno-unknown-pragmas', language: 'cpp')
+endif
 
 executable( 'genc', sources, include_directories : includes )
-
