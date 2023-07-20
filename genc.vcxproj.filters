@@ -39,6 +39,9 @@
     <ClCompile Include="test\test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bootstrap\gencpp\gen.dep.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bootstrap\gencpp\gen.hpp">
@@ -80,5 +83,26 @@
     <ClInclude Include="project\components\genc.strings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bootstrap\gencpp\gen.dep.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bootstrap\gencpp\gen.editor.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bootstrap\gencpp\gen.pop_ignores.inline.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bootstrap\gencpp\gen.push_ignores.inline.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bootstrap\gencpp\gen.scanner.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="scripts\gencpp.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scripts\genccp.natstepfilter" />
   </ItemGroup>
 </Project>

@@ -5,21 +5,11 @@
 		<DisplayString>Data:{Data} Proc:{Proc}</DisplayString>
 	</Type>
 
-	<Type Name="gen::Pool">
-		<DisplayString>NumBlocks: {NumBlocks} TotalSize: {TotalSize}</DisplayString>
-		<Expand>
-			<LinkedListItems>
-				<Size>NumBlocks</Size>
-				<HeadPointer>FreeList</HeadPointer>
-				<NextPointer>FreeList</NextPointer>
-				<ValueNode>PhysicalStart</ValueNode>
-			</LinkedListItems>
-		</Expand>
-	</Type>
-
 	<Type Name="gen::Array&lt;*&gt;">
-		<DisplayString>Num:{((Header*)((char*)Data - sizeof(Header)))->Num},
-			Capacity:{((Header*)((char*)Data - sizeof(Header)))->Capacity}</DisplayString>
+		<DisplayString>
+			Num:{((Header*)((char*)Data - sizeof(Header)))->Num},
+			Capacity:{((Header*)((char*)Data - sizeof(Header)))->Capacity}
+		</DisplayString>
 		<Expand>
 			<Synthetic Name="Header">
 				<DisplayString>{(Header*)((char*)Data - sizeof(Header))}</DisplayString>
@@ -33,6 +23,29 @@
 				<Size>((Header*)((char*)Data - sizeof(Header)))->Capacity</Size>
 				<ValuePointer>Data</ValuePointer>
 			</ArrayItems>
+		</Expand>
+	</Type>
+
+	<Type Name="gen::ADT_Node">
+		<DisplayString Condition="type &lt; 3">Type: {type} Name: {name}</DisplayString>
+		<DisplayString Condition="type == 3">String: {string}</DisplayString>
+		<DisplayString Condition="type == 5">Integer: {integer}</DisplayString>
+		<DisplayString Condition="type == 6">Real: {real}</DisplayString>
+		<Expand>
+			<Item Name="Parent">parent</Item>
+			<Item Name="Nodes" Condition="type == EADT_TYPE_ARRAY">nodes</Item>
+		</Expand>
+	</Type>
+
+	<Type Name="gen::Pool">
+		<DisplayString>NumBlocks: {NumBlocks} TotalSize: {TotalSize}</DisplayString>
+		<Expand>
+			<LinkedListItems>
+				<Size>NumBlocks</Size>
+				<HeadPointer>FreeList</HeadPointer>
+				<NextPointer>FreeList</NextPointer>
+				<ValueNode>PhysicalStart</ValueNode>
+			</LinkedListItems>
 		</Expand>
 	</Type>
 

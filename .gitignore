@@ -2,6 +2,7 @@
 
 build/*
 project/genc.h
+project/genc.dep.h
 project/genc.c
 
 

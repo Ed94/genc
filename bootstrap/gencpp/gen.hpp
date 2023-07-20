@@ -14,7 +14,7 @@
 
 #include "gen.push_ignores.inline.hpp"
 
-//! If its desired to roll your own dependencies, define GENCPP_PROVIDE_DEPENDENCIES before including this file.
+//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDENCIES before including this file.
 // Dependencies are derived from the c-zpl library: https://github.com/zpl-c/zpl
 #ifndef GEN_ROLL_OWN_DEPENDENCIES
 #	include "gen.dep.hpp"
@@ -240,9 +240,9 @@ namespace ESpecifier
 		#	pragma push_macro( "global" )
 		#	pragma push_macro( "internal" )
 		#	pragma push_macro( "local_persist" )
-		#	define global        global
-		#	define internal      internal
-		#	define local_persist local_persist
+		#	undef global
+		#	undef internal
+		#	undef local_persist
 
 		#	define Entry( Spec_, Code_ ) { sizeof(stringize(Code_)), stringize(Code_) },
 			Define_Specifiers
@@ -348,7 +348,7 @@ namespace Attribute
 	constexpr char const* API_Import = stringize( GEN_API_Import_Code  );
 	constexpr char const* Keyword    = stringize( GEN_Attribute_Keyword);
 
-#elif GEN_HAS_ATTRIBUTE( visibility ) || GEN_GCC_VERSION_CHECK( 3, 3, 0 ) || GEN_INTEL_VERSION_CHECK( 13, 0, 0 )
+#elif GEN_HAS_ATTRIBUTE( visibility ) || GEN_GCC_VERSION_CHECK( 3, 3, 0 )
 #	define GEN_API_Export_Code   __attribute__ ((visibility ("default")))
 #	define GEN_API_Import_Code   __attribute__ ((visibility ("default")))
 #	define GEN_Attribute_Keyword __attribute__
@@ -1244,7 +1244,7 @@ static_assert( sizeof(AST_Type) == sizeof(AST), "ERROR: AST_Type is not the same
 struct AST_Typedef
 {
 	union {
-		char 		  _PAD_[ sizeof(SpecifierT) * AST::ArrSpecs_Cap ];
+		char 		       _PAD_[ sizeof(SpecifierT) * AST::ArrSpecs_Cap ];
 		struct
 		{
 			CodeAttributes Attributes;
@@ -1253,13 +1253,13 @@ struct AST_Typedef
 			char 	       _PAD_PROPERTIES_[ sizeof(AST*) * 2 ];
 		};
 	};
-	Code              Prev;
-	Code              Next;
-	Code              Parent;
-	StringCached      Name;
-	CodeT             Type;
-	ModuleFlag        ModuleFlags;
-	char 			  _PAD_UNUSED_[ sizeof(u32) ];
+	Code                   Prev;
+	Code                   Next;
+	Code                   Parent;
+	StringCached           Name;
+	CodeT                  Type;
+	ModuleFlag             ModuleFlags;
+	char 			       _PAD_UNUSED_[ sizeof(u32) ];
 };
 static_assert( sizeof(AST_Typedef) == sizeof(AST), "ERROR: AST_Typedef is not the same size as AST");
 
@@ -1458,7 +1458,6 @@ CodeBody      def_union_body      ( s32 num, Code* codes );
 #pragma endregion Upfront
 
 #pragma region Parsing
-#	ifdef GEN_FEATURE_PARSING
 CodeClass      parse_class        ( StrC class_def     );
 CodeEnum       parse_enum         ( StrC enum_def      );
 CodeBody       parse_export_body  ( StrC export_def    );
@@ -1476,7 +1475,6 @@ CodeTypedef    parse_typedef      ( StrC typedef_def   );
 CodeUnion      parse_union        ( StrC union_def     );
 CodeUsing      parse_using        ( StrC using_def     );
 CodeVar        parse_variable     ( StrC var_def       );
-#endif
 #pragma endregion Parsing
 
 #pragma region Untyped text
@@ -1931,6 +1929,27 @@ namespace gen
 }
 #pragma endregion Constants
 
+#pragma region Macros
+#	define gen_main main
+
+#	define __ NoCode
+
+//	Convienence for defining any name used with the gen api.
+//  Lets you provide the length and string literal to the functions without the need for the DSL.
+#	define name( Id_ )   { sizeof(stringize( Id_ )) - 1, stringize(Id_) }
+
+//  Same as name just used to indicate intention of literal for code instead of names.
+#	define code( ... ) { sizeof(stringize(__VA_ARGS__)) - 1, stringize( __VA_ARGS__ ) }
+
+#	define args( ... ) num_args( __VA_ARGS__ ), __VA_ARGS__
+
+#	define code_str( ... ) gen::untyped_str( code( __VA_ARGS__ ) )
+#	define code_fmt( ... ) gen::untyped_str( token_fmt( __VA_ARGS__ ) )
+
+// Takes a format string (char const*) and a list of tokens (StrC) and returns a StrC of the formatted string.
+#	define token_fmt( ... ) gen::token_fmt_impl( (num_args( __VA_ARGS__ ) + 1) / 2, __VA_ARGS__ )
+#pragma endregion Macros
+
 #ifdef GEN_EXPOSE_BACKEND
 namespace gen
 {
@@ -1952,26 +1971,5 @@ namespace gen
 	extern AllocatorInfo Allocator_TypeTable;
 }
 #endif
-
-#pragma region Macros
-#	define gen_main main
-
-#	define __ NoCode
-
-//	Convienence for defining any name used with the gen api.
-//  Lets you provide the length and string literal to the functions without the need for the DSL.
-#	define name( Id_ )   { sizeof(stringize( Id_ )) - 1, stringize(Id_) }
-
-//  Same as name just used to indicate intention of literal for code instead of names.
-#	define code( ... ) { sizeof(stringize(__VA_ARGS__)) - 1, stringize( __VA_ARGS__ ) }
-
-#	define args( ... ) num_args( __VA_ARGS__ ), __VA_ARGS__
-
-#	define code_str( ... ) gen::untyped_str( code( __VA_ARGS__ ) )
-#	define code_fmt( ... ) gen::untyped_str( token_fmt( __VA_ARGS__ ) )
-
-// Takes a format string (char const*) and a list of tokens (StrC) and returns a StrC of the formatted string.
-#	define token_fmt( ... ) gen::token_fmt_impl( (num_args( __VA_ARGS__ ) + 1) / 2, __VA_ARGS__ )
-#pragma endregion Macros
 
 #include "gen.pop_ignores.inline.hpp"

@@ -1,12 +1,14 @@
 #pragma region Strings
-typedef struct gen_StrDef gen_StrDef;
-struct gen_StrDef
+typedef struct gen_Str gen_Str;
+struct gen_Str
 {
 	gen_sw      Len;
 	char const* Ptr;
 };
-typedef char const* gen_Str;
+typedef char const* gen_StrC;
+
+#define gen_strc_len( strc ) ( (sw)( strc - sizeof(gen_sw) ) )
 
 typedef char*       gen_String;
 typedef char const* gen_StringCached;
-#pragma region Strings
+#pragma endregion Strings

@@ -95,13 +95,19 @@
     <ClCompile Include="bootstrap\build\meson-private\sanitycheckcpp.cc" />
     <ClCompile Include="bootstrap\genc.bootstrap.cpp" />
     <ClCompile Include="bootstrap\gencpp\gen.cpp" />
+    <ClCompile Include="bootstrap\gencpp\gen.dep.cpp" />
     <ClCompile Include="bootstrap\gencpp\gen_dep.cpp" />
     <ClCompile Include="project\components\genc.csv.c" />
     <ClCompile Include="project\genc.c" />
     <ClCompile Include="test\test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bootstrap\gencpp\gen.dep.hpp" />
+    <ClInclude Include="bootstrap\gencpp\gen.editor.hpp" />
     <ClInclude Include="bootstrap\gencpp\gen.hpp" />
+    <ClInclude Include="bootstrap\gencpp\gen.pop_ignores.inline.hpp" />
+    <ClInclude Include="bootstrap\gencpp\gen.push_ignores.inline.hpp" />
+    <ClInclude Include="bootstrap\gencpp\gen.scanner.hpp" />
     <ClInclude Include="bootstrap\gencpp\gen_dep.hpp" />
     <ClInclude Include="project\components\genc.adt.h" />
     <ClInclude Include="project\components\genc.attributes.h" />
@@ -114,6 +120,12 @@
     <ClInclude Include="project\components\genc.memory.h" />
     <ClInclude Include="project\components\genc.strings.h" />
     <ClInclude Include="project\genc.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="scripts\gencpp.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scripts\genccp.natstepfilter" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

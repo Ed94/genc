@@ -1,16 +1,11 @@
-#define GEN_FEATURE_PARSING
 #define GEN_DEFINE_LIBRARY_CODE_CONSTANTS
 #define GEN_ENFORCE_STRONG_CODE_TYPES
 #define GEN_EXPOSE_BACKEND
 #include "gencpp/gen.cpp"
+#include "gencpp/gen.push_ignores.inline.hpp"
+
 
 using namespace gen;
-
-// TODO : Can easily make all enums + funcs with this...
-Code gen_enum_from_csv( char const* path )
-{
-	return CodeInvalid;
-}
 
 Code scan_file( char const* path )
 {
@@ -39,43 +34,24 @@ Code scan_file( char const* path )
 
 CodeBody gen_ecode()
 {
-	local_persist
-	char const* codes[] {
-		"Untyped",
-		"Comment",
-		"PlatformAttributes",
-		"Enum",
-		"Enum_Body",
-		"Execution",
-		"Function",
-		"Function_Fwd",
-		"Function_Body",
-		"Global_Body",
-		"Generic",
-		"Parameters",
-		"Include",
-		"Specifiers",
-		"Struct",
-		"Struct_Fwd",
-		"Struct_Body",
-		"Template_Macro",
-		"Typedef",
-		"Union",
-		"Variable",
-	};
-	constexpr s32 num_codes = sizeof(codes) / sizeof(char const*);
-	constexpr s32 str_size = sizeof(codes) * 2;
+	char scratch_mem[kilobytes(1)];
+	Arena scratch = Arena::init_from_memory( scratch_mem, sizeof(scratch_mem) );
 
-	char  str_entries_mem[ kilobytes(64) ];
-	Arena str_entries_arena = Arena::init_from_memory( str_entries_mem, sizeof(str_entries_mem) );
+	file_read_contents( scratch, zero_terminate, "./components/ECode.csv" );
 
-	String enum_entries   = String::make_reserve( str_entries_arena, str_size );
-	String to_str_entries = String::make_reserve( str_entries_arena, str_size * 10 );
+	CSV_Object csv_nodes;
+	csv_parse( &csv_nodes, scratch_mem, GlobalAllocator, false );
 
-	for ( char const* code : codes )
+	Array<ADT_Node> enum_strs = csv_nodes.nodes[0].nodes;
+
+	String enum_entries   = String::make_reserve( GlobalAllocator, kilobytes(1) );
+	String to_str_entries = String::make_reserve( GlobalAllocator, kilobytes(1) );
+
+	for ( ADT_Node node : enum_strs )
 	{
-		enum_entries.append_fmt( "%s,\n", code );
-		to_str_entries.append_fmt( "{ sizeof(\"%s\"), \"%s\" },\n", code, code );
+		char const* code = node.string;
+		enum_entries.append_fmt( "gen_ECode_%s,\n", code );
+		to_str_entries.append_fmt( "{ sizeof(\"%s\"), \"%s\" },", code, code );
 	}
 
 	CodeTypedef td_enum = parse_typedef(code(typedef gen_u32 gen_CodeT;));
@@ -83,20 +59,17 @@ CodeBody gen_ecode()
 	CodeEnum enum_code = parse_enum( token_fmt( "entries", (StrC)enum_entries, stringize(
 		enum gen_ECode
 		{
-			Invalid,
 			<entries>
-			NumTypes = Variable
+			gen_ECode_Num
 		};
 	)));
 
 	CodeFn to_str = parse_function( token_fmt( "entries", (StrC)to_str_entries, stringize(
-		gen_StrDef gen_ecode_to_str( gen_CodeT type )
+		gen_Str gen_ecode_to_str( gen_CodeT type )
 		{
 			local_persist
-			gen_StrDef lookup[ NumTypes ] {
-				{ sizeof("Invalid"), "Invalid" },
+			gen_Str lookup[] {
 				<entries>
-				{ sizeof( "NumTypes", "NumTypes" ) }
 			};
 
 			return lookup[ type ];
@@ -108,9 +81,50 @@ CodeBody gen_ecode()
 
 CodeBody gen_especifier()
 {
+	char scratch_mem[kilobytes(1)];
+	Arena scratch = Arena::init_from_memory( scratch_mem, sizeof(scratch_mem) );
 
+	file_read_contents( scratch, zero_terminate, "./components/ESpecifier.csv" );
 
-	return CodeInvalid;
+	CSV_Object csv_nodes;
+	csv_parse( &csv_nodes, scratch_mem, GlobalAllocator, false );
+
+	Array<ADT_Node> enum_strs = csv_nodes.nodes[0].nodes;
+	Array<ADT_Node> str_strs  = csv_nodes.nodes[1].nodes;
+
+	String enum_entries   = String::make_reserve( GlobalAllocator, kilobytes(1) );
+	String to_str_entries = String::make_reserve( GlobalAllocator, kilobytes(1) );
+
+	for (uw idx = 0; idx < enum_strs.num(); idx++)
+	{
+		char const* enum_str     = enum_strs[idx].string;
+		char const* entry_to_str = str_strs [idx].string;
+
+		enum_entries.append_fmt( "gen_ESpecifier_%s,\n", enum_str );
+		to_str_entries.append_fmt( "{ sizeof(\"%s\"), \"%s\" },", entry_to_str, entry_to_str);
+	}
+
+	CodeTypedef td_enum   = parse_typedef(code(typedef gen_u32 gen_SpecifierT; ));
+	CodeEnum    enum_code = parse_enum(token_fmt("entries", (StrC)enum_entries, stringize(
+		enum gen_ESpecifier
+		{
+			<entries>
+			gen_ESpecifier_Num
+		};
+	)));
+	CodeFn to_str = parse_function(token_fmt("entries", (StrC)to_str_entries, stringize(
+		gen_Str gen_especifier_to_str(gen_SpecifierT type)
+		{
+			local_persist
+			gen_Str lookup[] {
+				<entries>
+			};
+
+			return lookup[ type ];
+		}
+	)));
+
+	return def_global_body( args( td_enum, enum_code, to_str ) );
 }
 
 int main()
@@ -119,7 +133,7 @@ int main()
 	gen::init();
 
 	Builder
-	genc_header;
+	genc_dep_header;
 	{
 		// Dependencies
 		Code header_start = scan_file( "./components/genc.header_start.h");
@@ -127,33 +141,68 @@ int main()
 		Code basic_types  = scan_file( "./components/genc.basic_types.h");
 		Code debug        = scan_file( "./components/genc.debug.h" );
 		Code memory       = scan_file( "./components/genc.memory.h" );
-		Code csv          = scan_file( "./components/genc.csv.h" );
 		Code strings      = scan_file( "./components/genc.strings.h" );
+		Code adt          = scan_file( "./components/genc.adt.h" );
+		Code csv          = scan_file( "./components/genc.csv.h" );
 
+		genc_dep_header.open("genc.dep.h");
+			genc_dep_header.print_fmt("#pragma once\n\n");
+			genc_dep_header.print( header_start );
+			genc_dep_header.print( macros );
+			genc_dep_header.print( basic_types );
+			genc_dep_header.print( debug );
+			genc_dep_header.print( memory );
+			genc_dep_header.print(csv);
+			genc_dep_header.print( strings );
+		genc_dep_header.write();
+	}
+
+	constexpr
+	char const* gen_time_guard =
+R"(#pragma once
+
+#if ! defined(GEN_DONT_ENFORCE_GEN_TIME_GUARD) && ! defined(GEN_TIME)
+#error Gen.hpp : GEN_TIME not defined
+#endif
+
+)";
+
+	constexpr
+	char const* gen_dep_wrap =
+R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDENCIES before including this file.
+// Dependencies are derived from the c-zpl library: https://github.com/zpl-c/zpl
+#ifndef GEN_ROLL_OWN_DEPENDENCIES
+#	include "genc.dep.h"
+#endif
+
+)";
+
+	Builder
+	genc_header;
+	{
 		// Library
 		Code attributes = scan_file("./components/genc.attributes.h");
 
 		CodeBody ecode      = gen_ecode();
-		// CodeBody especifier = gen_especifier();
+		CodeBody especifier = gen_especifier();
 
 		Code data_structures = scan_file("./components/genc.data_structures.h");
+		Code gen_interface   = scan_file("./components/genc.interface.h");
+		Code gen_builder     = scan_file("./components/genc.builder.h");
 
 		genc_header.open("genc.h");
-		genc_header.print_fmt("#if gen_time\n");
+			genc_header.print_fmt(gen_time_guard);
+			genc_header.print_fmt(gen_dep_wrap);
 
-			genc_header.print(header_start);
-			genc_header.print(macros);
-			genc_header.print(basic_types);
-			genc_header.print(debug);
-			genc_header.print(memory);
-			// genc_header.print(csv);
-			genc_header.print(strings);
+			genc_header.print_fmt("#pragma region Types\n");
+			genc_header.print( ecode );
+			genc_header.print( especifier );
+			genc_header.print( attributes );
+			genc_header.print_fmt("#pragma endregion Types\n");
 
-			genc_header.print(ecode);
-			genc_header.print(attributes);
-			// genc_header.print(data_structures);
-
-		genc_header.print_fmt("// gen_time\n#endif\n");
+			genc_header.print( data_structures );
+			genc_header.print( gen_interface );
+			genc_header.print( gen_builder );
 		genc_header.write();
 	}
 
@@ -163,11 +212,8 @@ int main()
 		Code csv = scan_file( "./components/genc.csv.h" );
 
 		genc_source.open("genc.c");
-		genc_header.print_fmt("#if gen_time\n");
-
-		genc_source.print( csv );
-
-		genc_source.print_fmt("// gen_time\n#endif\n");
+		genc_header.print_fmt(gen_time_guard);
+			genc_source.print( csv );
 		genc_source.write();
 	}
 
