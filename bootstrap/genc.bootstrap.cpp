@@ -3,6 +3,7 @@
 #define GEN_EXPOSE_BACKEND
 #include "gencpp/gen.cpp"
 #include "gencpp/gen.push_ignores.inline.hpp"
+#include "genc.array.hpp"
 
 
 using namespace gen;
@@ -141,9 +142,15 @@ int main()
 		Code basic_types  = scan_file( "./components/genc.basic_types.h");
 		Code debug        = scan_file( "./components/genc.debug.h" );
 		Code memory       = scan_file( "./components/genc.memory.h" );
+		Code string_ops   = scan_file( "./components/genc.string_ops.h" );
+		Code printing     = scan_file( "./components/genc.printing.h" );
 		Code strings      = scan_file( "./components/genc.strings.h" );
 		Code adt          = scan_file( "./components/genc.adt.h" );
 		Code csv          = scan_file( "./components/genc.csv.h" );
+		Code filesystem   = scan_file( "./components/genc.filesystem.h" );
+
+		CodeBody array_base_impl = gen_array_base();
+		CodeBody array_char_ptr = gen_array( txt_StrC("char*"), txt_StrC("gen_Array_CStr") );
 
 		genc_dep_header.open("genc.dep.h");
 			genc_dep_header.print_fmt("#pragma once\n\n");
@@ -152,8 +159,18 @@ int main()
 			genc_dep_header.print( basic_types );
 			genc_dep_header.print( debug );
 			genc_dep_header.print( memory );
-			genc_dep_header.print(csv);
+			genc_dep_header.print( string_ops );
+			genc_dep_header.print( printing );
 			genc_dep_header.print( strings );
+			{
+				// Containers
+				genc_dep_header.print_fmt("#pragma region Containers\n");
+				genc_dep_header.print( array_base_impl );
+				genc_dep_header.print( array_char_ptr );
+				genc_dep_header.print_fmt("#pragma endregion Containers\n\n");
+			}
+			genc_dep_header.print( filesystem );
+			genc_dep_header.print( csv );
 		genc_dep_header.write();
 	}
 
@@ -191,8 +208,8 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 		Code gen_builder     = scan_file("./components/genc.builder.h");
 
 		genc_header.open("genc.h");
-			genc_header.print_fmt(gen_time_guard);
-			genc_header.print_fmt(gen_dep_wrap);
+			genc_header.print_fmt( gen_time_guard );
+			genc_header.print_fmt( gen_dep_wrap );
 
 			genc_header.print_fmt("#pragma region Types\n");
 			genc_header.print( ecode );
@@ -212,7 +229,7 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 		Code csv = scan_file( "./components/genc.csv.h" );
 
 		genc_source.open("genc.c");
-		genc_header.print_fmt(gen_time_guard);
+		genc_header.print_fmt( gen_time_guard );
 			genc_source.print( csv );
 		genc_source.write();
 	}

@@ -346,15 +346,15 @@ static_assert( sizeof(gen_AST_Var) == sizeof(gen_AST), "ERROR: AST_Var is not th
 extern gen_Code gen_CodeInvalid;
 
 #pragma region Code Interface
-void           gen_code_debug_string   ( gen_Code     self );
-gen_Code       gen_code_duplicate      ( gen_Code     self );
-gen_Code       gen_code_entry          ( gen_Code     self, gen_s32 idx );
-bool           gen_code_is_equal       ( gen_Code     self, gen_Code other );
-void           gen_code_set_global     ( gen_Code     self );
-gen_String     gen_code_to_string      ( gen_Code     self );
-void           gen_codebody_append     ( gen_CodeBody self, gen_Code entry );
-bool           gen_codebody_has_entries( gen_CodeBody self );
-bool           gen_codebody_validate   ( gen_CodeBody self );
+void       gen_code_debug_string   ( gen_Code     self );
+gen_Code   gen_code_duplicate      ( gen_Code     self );
+gen_Code   gen_code_entry          ( gen_Code     self, gen_s32 idx );
+bool       gen_code_is_equal       ( gen_Code     self, gen_Code other );
+void       gen_code_set_global     ( gen_Code     self );
+gen_String gen_code_to_string      ( gen_Code     self );
+void       gen_codebody_append     ( gen_CodeBody self, gen_Code entry );
+bool       gen_codebody_has_entries( gen_CodeBody self );
+bool       gen_codebody_validate   ( gen_CodeBody self );
 
 #define gen_code_assign( self, field, other )                                                                                                                                      \
 	do                                                                                                                                                                             \

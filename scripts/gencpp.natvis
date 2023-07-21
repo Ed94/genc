@@ -656,18 +656,6 @@
 		</Expand>
 	</Type>
 
-	<Type Name="gen::CodeUsingNamespace">
-		<DisplayString Condition="ast == nullptr">Null</DisplayString>
-		<DisplayString Condition="ast != nullptr">{ast->Name} {ast->Type}</DisplayString>
-		<Expand>
-			<Item Name="Prev">ast->Prev</Item>
-			<Item Name="Next">ast->Next</Item>
-			<Item Name="Parent">ast->Parent</Item>
-			<Item Name="Name">ast->Name</Item>
-			<Item Name="Type">ast->Type</Item>
-		</Expand>
-	</Type>
-
 	<Type Name="gen::CodeVar">
 		<DisplayString Condition="ast == nullptr">Null</DisplayString>
 		<DisplayString Condition="ast != nullptr">{ast->Name} {ast->Type}</DisplayString>

@@ -1,4 +1,5 @@
 #pragma region Strings
+
 typedef struct gen_Str gen_Str;
 struct gen_Str
 {
@@ -11,4 +12,5 @@ typedef char const* gen_StrC;
 
 typedef char*       gen_String;
 typedef char const* gen_StringCached;
+
 #pragma endregion Strings

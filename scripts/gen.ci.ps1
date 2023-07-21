@@ -61,7 +61,7 @@ Push-location $path_project
 		'-verbose'
 	)
 
-	$include = @('genc.h', 'genc.c')
+	$include = @('genc.h', 'genc.c', 'genc.dep.h')
 	$exclude = $null
 
 	$targetFiles = @(Get-ChildItem -Recurse -Path $path_gen -Include $include -Exclude $exclude | Select-Object -ExpandProperty FullName)

@@ -65,40 +65,42 @@ gen_CodeBody gen_def_body( gen_CodeT type );
 // There are two options for defining a struct body, either varadically provided with the args macro to auto-deduce the arg num,
 /// or provide as an array of gen_Code objects.
 
-gen_CodeBody       gen_def_enum_body       ( gen_s32 num, ... );
-gen_CodeBody       gen_def_enum_body       ( gen_s32 num, gen_Code* codes );
-gen_CodeBody       gen_def_function_body   ( gen_s32 num, ... );
-gen_CodeBody       gen_def_function_body   ( gen_s32 num, gen_Code* codes );
-gen_CodeBody       gen_def_global_body     ( gen_s32 num, ... );
-gen_CodeBody       gen_def_global_body     ( gen_s32 num, gen_Code* codes );
-gen_CodeParam      gen_def_params          ( gen_s32 num, ... );
-gen_CodeParam      gen_def_params          ( gen_s32 num, gen_CodeParam* params );
-gen_CodeSpecifiers gen_def_specifiers      ( gen_s32 num, ... );
-gen_CodeSpecifiers gen_def_specifiers      ( gen_s32 num, gen_SpecifierT* specs );
-gen_CodeBody       gen_def_struct_body     ( gen_s32 num, ... );
-gen_CodeBody       gen_def_struct_body     ( gen_s32 num, gen_Code* codes );
-gen_CodeBody       gen_def_union_body      ( gen_s32 num, ... );
-gen_CodeBody       gen_def_union_body      ( gen_s32 num, gen_Code* codes );
+gen_CodeBody       gen_def_enum_body    ( gen_s32 num, ... );
+gen_CodeBody       gen_def_enum_body    ( gen_s32 num, gen_Code* codes );
+gen_CodeBody       gen_def_function_body( gen_s32 num, ... );
+gen_CodeBody       gen_def_function_body( gen_s32 num, gen_Code* codes );
+gen_CodeBody       gen_def_global_body  ( gen_s32 num, ... );
+gen_CodeBody       gen_def_global_body  ( gen_s32 num, gen_Code* codes );
+gen_CodeParam      gen_def_params       ( gen_s32 num, ... );
+gen_CodeParam      gen_def_params       ( gen_s32 num, gen_CodeParam* params );
+gen_CodeSpecifiers gen_def_specifiers   ( gen_s32 num, ... );
+gen_CodeSpecifiers gen_def_specifiers   ( gen_s32 num, gen_SpecifierT* specs );
+gen_CodeBody       gen_def_struct_body  ( gen_s32 num, ... );
+gen_CodeBody       gen_def_struct_body  ( gen_s32 num, gen_Code* codes );
+gen_CodeBody       gen_def_union_body   ( gen_s32 num, ... );
+gen_CodeBody       gen_def_union_body   ( gen_s32 num, gen_Code* codes );
 #pragma endregion Upfront
 
 #pragma region Parsing
-gen_CodeEnum       gen_parse_enum         ( gen_Str enum_def      );
-gen_CodeFn         gen_parse_function     ( gen_Str fn_def        );
-gen_CodeBody       gen_parse_global_body  ( gen_Str body_def      );
-gen_CodeStruct     gen_parse_struct       ( gen_Str struct_def    );
-gen_CodeType       gen_parse_type         ( gen_Str type_def      );
-gen_CodeTypedef    gen_parse_typedef      ( gen_Str typedef_def   );
-gen_CodeUnion      gen_parse_union        ( gen_Str union_def     );
-gen_CodeVar        gen_parse_variable     ( gen_Str var_def       );
+gen_CodeEnum    gen_parse_enum       ( gen_Str enum_def      );
+gen_CodeFn      gen_parse_function   ( gen_Str fn_def        );
+gen_CodeBody    gen_parse_global_body( gen_Str body_def      );
+gen_CodeStruct  gen_parse_struct     ( gen_Str struct_def    );
+gen_CodeType    gen_parse_type       ( gen_Str type_def      );
+gen_CodeTypedef gen_parse_typedef    ( gen_Str typedef_def   );
+gen_CodeUnion   gen_parse_union      ( gen_Str union_def     );
+gen_CodeVar     gen_parse_variable   ( gen_Str var_def       );
 #pragma endregion Parsing
 
-#pragma region Untyped text
+#pragma region Untyped
+
 gen_sw  gen_token_fmt_va( char* buf, gen_uw buf_size, gen_s32 num_tokens, va_list va );
 gen_Str gen_token_fmt_impl( gen_sw, ... );
 
-gen_Code gen_untyped_str      ( gen_Str content);
-gen_Code gen_untyped_fmt      ( char const* fmt, ... );
+gen_Code gen_untyped_str( gen_Str content);
+gen_Code gen_untyped_fmt( char const* fmt, ... );
 gen_Code gen_untyped_token_fmt( char const* fmt, gen_s32 num_tokens, ... );
-#pragma endregion Untyped text
+
+#pragma endregion Untyped
 
 #pragma endregion Gen Interaface
