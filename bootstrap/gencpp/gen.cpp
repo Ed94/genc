@@ -14,10 +14,10 @@
 
 #include "gen.hpp"
 
-namespace gen {
+GEN_NS_BEGIN
 
 #pragma region StaticData
-// TODO : Convert global allocation strategy to use the dual-scratch allocator for a contextual scope.
+// TODO : Convert global allocation strategy to use a slab allocation strategy.
 global AllocatorInfo  GlobalAllocator;
 global Array<Arena>   Global_AllocatorBuckets;
 
@@ -75,23 +75,23 @@ global Code module_private_fragment;
 
 global Code pragma_once;
 
-global CodeSpecifier spec_const;
-global CodeSpecifier spec_consteval;
-global CodeSpecifier spec_constexpr;
-global CodeSpecifier spec_constinit;
-global CodeSpecifier spec_extern_linkage;
-global CodeSpecifier spec_global;
-global CodeSpecifier spec_inline;
-global CodeSpecifier spec_internal_linkage;
-global CodeSpecifier spec_local_persist;
-global CodeSpecifier spec_mutable;
-global CodeSpecifier spec_ptr;
-global CodeSpecifier spec_ref;
-global CodeSpecifier spec_register;
-global CodeSpecifier spec_rvalue;
-global CodeSpecifier spec_static_member;
-global CodeSpecifier spec_thread_local;
-global CodeSpecifier spec_volatile;
+global CodeSpecifiers spec_const;
+global CodeSpecifiers spec_consteval;
+global CodeSpecifiers spec_constexpr;
+global CodeSpecifiers spec_constinit;
+global CodeSpecifiers spec_extern_linkage;
+global CodeSpecifiers spec_global;
+global CodeSpecifiers spec_inline;
+global CodeSpecifiers spec_internal_linkage;
+global CodeSpecifiers spec_local_persist;
+global CodeSpecifiers spec_mutable;
+global CodeSpecifiers spec_ptr;
+global CodeSpecifiers spec_ref;
+global CodeSpecifiers spec_register;
+global CodeSpecifiers spec_rvalue;
+global CodeSpecifiers spec_static_member;
+global CodeSpecifiers spec_thread_local;
+global CodeSpecifiers spec_volatile;
 #pragma endregion Constants
 
 #pragma region AST Body Case Macros
@@ -632,12 +632,23 @@ String AST::to_string()
 				result.append_fmt( "%s(", Name );
 
 			if ( Params )
-				result.append_fmt( "%s", Params->to_string() );
+				result.append_fmt( "%s)", Params->to_string() );
 
 			else
-				result.append( "void" );
+				result.append( "void)" );
 
-			result.append_fmt( ")\n{\n%s\n}"
+			if ( Specs )
+			{
+				CodeSpecifiers specs = cast<CodeSpecifiers>();
+
+				for ( SpecifierT spec : specs )
+				{
+					if ( ESpecifier::is_trailing( spec ) )
+						result.append_fmt( " %s", (char const*)ESpecifier::to_str( spec ) );
+				}
+			}
+
+			result.append_fmt( "\n{\n%s\n}"
 				, Body->to_string()
 			);
 		}
@@ -660,12 +671,23 @@ String AST::to_string()
 				result.append_fmt( "%s(", Name );
 
 			if ( Params )
-				result.append_fmt( "%s", Params->to_string() );
+				result.append_fmt( "%s)", Params->to_string() );
 
 			else
-				result.append( "void" );
+				result.append( "void)" );
 
-			result.append( ");" );
+			if ( Specs )
+			{
+				CodeSpecifiers specs = cast<CodeSpecifiers>();
+
+				for ( SpecifierT spec : specs )
+				{
+					if ( ESpecifier::is_trailing( spec ) )
+						result.append_fmt( " %s", (char const*)ESpecifier::to_str( spec ) );
+				}
+			}
+
+			result.append( ";" );
 		}
 		break;
 
@@ -703,12 +725,23 @@ String AST::to_string()
 				result.append_fmt( "%s %s (", ReturnType->to_string(), Name );
 
 			if ( Params )
-				result.append_fmt( "%s", Params->to_string() );
+				result.append_fmt( "%s)", Params->to_string() );
 
 			else
-				result.append( "void" );
+				result.append( "void)" );
 
-			result.append_fmt( ")\n{\n%s\n}"
+			if ( Specs )
+			{
+				CodeSpecifiers specs = cast<CodeSpecifiers>();
+
+				for ( SpecifierT spec : specs )
+				{
+					if ( ESpecifier::is_trailing( spec ) )
+						result.append_fmt( " %s", (char const*)ESpecifier::to_str( spec ) );
+				}
+			}
+
+			result.append_fmt( "\n{\n%s\n}"
 				, Body->to_string()
 			);
 		}
@@ -728,20 +761,65 @@ String AST::to_string()
 			result.append_fmt( "%s %s (", ReturnType->to_string(), Name );
 
 			if ( Params )
-				result.append_fmt( "%s);", Params->to_string() );
+				result.append_fmt( "%s)", Params->to_string() );
 
 			else
-				result.append_fmt( "void);" );
+				result.append_fmt( "void)" );
+
+			if ( Specs )
+			{
+				CodeSpecifiers specs = cast<CodeSpecifiers>();
+
+				for ( SpecifierT spec : specs )
+				{
+					if ( ESpecifier::is_trailing( spec ) )
+						result.append_fmt( " %s", (char const*)ESpecifier::to_str( spec ) );
+				}
+			}
+
+			result.append( ";" );
 		}
 		break;
 
 		case Operator_Cast:
 		{
-			result.append_fmt("operator %s(){\n%s\n}", ValueType->to_string(), Body->to_string() );
+			if ( Specs )
+			{
+				result.append_fmt( "operator %s()" );
+
+				CodeSpecifiers specs = cast<CodeSpecifiers>();
+
+				for ( SpecifierT spec : specs )
+				{
+					if ( ESpecifier::is_trailing( spec ) )
+						result.append_fmt( " %s", (char const*)ESpecifier::to_str( spec ) );
+				}
+
+				result.append_fmt( "\n{\n%s\n}", Body->to_string() );
+				break;
+			}
+
+			result.append_fmt("operator %s()\n{\n%s\n}", ValueType->to_string(), Body->to_string() );
 		}
 		break;
 
 		case Operator_Cast_Fwd:
+			if ( Specs )
+			{
+				result.append_fmt( "operator %s()" );
+
+				CodeSpecifiers specs = cast<CodeSpecifiers>();
+
+				for ( SpecifierT spec : specs )
+				{
+					if ( ESpecifier::is_trailing( spec ) )
+						result.append_fmt( " %s", (char const*)ESpecifier::to_str( spec ) );
+				}
+
+				result.append_fmt( ";", Body->to_string() );
+				break;
+			}
+
 			result.append_fmt("operator %s();", ValueType->to_string() );
 		break;
 
@@ -776,6 +854,12 @@ String AST::to_string()
 			s32 left = NumEntries;
 			while ( left-- )
 			{
+				if ( ESpecifier::is_trailing( ArrSpecs[idx])  )
+				{
+					idx++;
+					continue;
+				}
+
 				result.append_fmt( "%s ", (char const*)ESpecifier::to_str( ArrSpecs[idx]) );
 				idx++;
 			}
@@ -848,11 +932,6 @@ String AST::to_string()
 			ProcessModuleFlags();
 
 			result.append( "typedef ");
-
-			if ( Attributes )
-			{
-				result.append_fmt( "%s ", Attributes->to_string() );
-			}
 
 			result.append_fmt( "%s %s", UnderlyingType->to_string(), Name );
 
@@ -1482,7 +1561,7 @@ enum class OpValidateResult : u32
 };
 
 inline
-OpValidateResult operator__validate( OperatorT op, CodeParam params_code, CodeType ret_type, CodeSpecifier specifier )
+OpValidateResult operator__validate( OperatorT op, CodeParam params_code, CodeType ret_type, CodeSpecifiers specifier )
 {
 	using namespace EOperator;
 
@@ -2119,7 +2198,7 @@ CodeFriend def_friend( Code declaration )
 
 CodeFn def_function( StrC name
 	, CodeParam      params ,   CodeType       ret_type, Code body
-	, CodeSpecifier specifiers, CodeAttributes attributes
+	, CodeSpecifiers specifiers, CodeAttributes attributes
 	, ModuleFlag     mflags )
 {
 	using namespace ECode;
@@ -2256,7 +2335,7 @@ CodeNamespace def_namespace( StrC name, Code body, ModuleFlag mflags )
 
 CodeOperator def_operator( OperatorT op
 	, CodeParam      params_code, CodeType       ret_type, Code body
-	, CodeSpecifier specifiers,   CodeAttributes attributes
+	, CodeSpecifiers specifiers,   CodeAttributes attributes
 	, ModuleFlag     mflags )
 {
 	using namespace ECode;
@@ -2328,7 +2407,7 @@ CodeOperator def_operator( OperatorT op
 	return result;
 }
 
-CodeOpCast def_operator_cast( CodeType type, Code body )
+CodeOpCast def_operator_cast( CodeType type, Code body, CodeSpecifiers const_spec )
 {
 	using namespace ECode;
 	null_check( def_operator_cast, type );
@@ -2356,6 +2435,11 @@ CodeOpCast def_operator_cast( CodeType type, Code body )
 	else
 	{
 		result->Type = Operator_Cast_Fwd;
+	}
+
+	if ( const_spec )
+	{
+		result->Specs = const_spec;
 	}
 
 	result->ValueType = type;
@@ -2396,10 +2480,10 @@ CodeParam def_param( CodeType type, StrC name, Code value )
 	return result;
 }
 
-CodeSpecifier def_specifier( SpecifierT spec )
+CodeSpecifiers def_specifier( SpecifierT spec )
 {
-	CodeSpecifier
-	result       = (CodeSpecifier) make_code();
+	CodeSpecifiers
+	result       = (CodeSpecifiers) make_code();
 	result->Type = ECode::Specifiers;
 	result.append( spec );
 
@@ -2494,7 +2578,7 @@ CodeTemplate def_template( CodeParam params, Code declaration, ModuleFlag mflags
 	return result;
 }
 
-CodeType def_type( StrC name, Code arrayexpr, CodeSpecifier specifiers, CodeAttributes attributes )
+CodeType def_type( StrC name, Code arrayexpr, CodeSpecifiers specifiers, CodeAttributes attributes )
 {
 	name_check( def_type, name );
 
@@ -2535,13 +2619,28 @@ CodeType def_type( StrC name, Code arrayexpr, CodeSpecifier specifiers, CodeAttr
 
 CodeTypedef def_typedef( StrC name, Code type, CodeAttributes attributes, ModuleFlag mflags )
 {
+	using namespace ECode;
+
 	name_check( def_typedef, name );
 	null_check( def_typedef, type );
 
-	if ( type->Type != ECode::Typename )
+	switch ( type->Type )
 	{
-		log_failure( "gen::def_typedef: type was not a Typename - %s", type.debug_str() );
-		return CodeInvalid;
+		case Class:
+		case Class_Fwd:
+		case Enum:
+		case Enum_Fwd:
+		case Enum_Class:
+		case Enum_Class_Fwd:
+		case Function_Fwd:
+		case Struct:
+		case Struct_Fwd:
+		case Union:
+		case Typename:
+			break;
+		default:
+			log_failure( "gen::def_typedef: type was not a Class, Enum, Function Forward, Struct, Typename, or Union - %s", type.debug_str() );
+			return CodeInvalid;
 	}
 
 	if ( attributes && attributes->Type != ECode::PlatformAttributes )
@@ -2566,9 +2665,6 @@ CodeTypedef def_typedef( StrC name, Code type, CodeAttributes attributes, Module
 	result->ModuleFlags = mflags;
 
 	result->UnderlyingType = type;
-
-	if ( attributes )
-		result->Attributes = attributes;
 
 	return result;
 }
@@ -2654,7 +2750,7 @@ CodeUsing def_using_namespace( StrC name )
 }
 
 CodeVar def_variable( CodeType type, StrC name, Code value
-	, CodeSpecifier specifiers, CodeAttributes attributes
+	, CodeSpecifiers specifiers, CodeAttributes attributes
 	, ModuleFlag     mflags )
 {
 	name_check( def_variable, name );
@@ -3130,7 +3226,7 @@ CodeParam def_params( s32 num, CodeParam* codes )
 	return result;
 }
 
-CodeSpecifier def_specifiers( s32 num, ... )
+CodeSpecifiers def_specifiers( s32 num, ... )
 {
 	if ( num <= 0 )
 	{
@@ -3144,8 +3240,8 @@ CodeSpecifier def_specifiers( s32 num, ... )
 		return CodeInvalid;
 	}
 
-	CodeSpecifier
-	result       = (CodeSpecifier) make_code();
+	CodeSpecifiers
+	result       = (CodeSpecifiers) make_code();
 	result->Type = ECode::Specifiers;
 
 	va_list va;
@@ -3162,7 +3258,7 @@ CodeSpecifier def_specifiers( s32 num, ... )
 	return result;
 }
 
-CodeSpecifier def_specifiers( s32 num, SpecifierT* specs )
+CodeSpecifiers def_specifiers( s32 num, SpecifierT* specs )
 {
 	if ( num <= 0 )
 	{
@@ -3176,8 +3272,8 @@ CodeSpecifier def_specifiers( s32 num, SpecifierT* specs )
 		return CodeInvalid;
 	}
 
-	CodeSpecifier
-	result       = (CodeSpecifier) make_code();
+	CodeSpecifiers
+	result       = (CodeSpecifiers) make_code();
 	result->Type = ECode::Specifiers;
 
 	s32 idx = 0;
@@ -3307,77 +3403,86 @@ namespace Parser
 	It will not be capable of lexing C++ code with unsupported features.
 
 	For the sake of scanning files, it can scan preprocessor directives
+
+	Attributes_Start is only used to indicate the start of the user_defined attribute list.
 */
 
 #	define Define_TokType \
-	Entry( Access_Private,         "private" )         \
-	Entry( Access_Protected,       "protected" )       \
-	Entry( Access_Public,          "public" )          \
-	Entry( Access_MemberSymbol,    "." )               \
-	Entry( Access_StaticSymbol,    "::")               \
-	Entry( Ampersand,              "&" )               \
-	Entry( Ampersand_DBL,          "&&" )              \
-	Entry( Assign_Classifer,       ":" )               \
-	Entry( BraceCurly_Open,        "{" )               \
-	Entry( BraceCurly_Close,       "}" )               \
-	Entry( BraceSquare_Open,       "[" )               \
-	Entry( BraceSquare_Close,      "]" )               \
-	Entry( Capture_Start,          "(" )               \
-	Entry( Capture_End,            ")" )               \
-	Entry( Comment,                "__comment__" )     \
-	Entry( Char,                   "__char__" )        \
-	Entry( Comma,                  "," )               \
-	Entry( Decl_Class,             "class" )           \
-	Entry( Decl_Enum,              "enum" )            \
-	Entry( Decl_Extern_Linkage,    "extern" )          \
-	Entry( Decl_Friend,            "friend" )          \
-	Entry( Decl_Module,            "module" )          \
-	Entry( Decl_Namespace,         "namespace" )       \
-	Entry( Decl_Operator,          "operator" )        \
-	Entry( Decl_Struct,            "struct" )          \
-	Entry( Decl_Template,          "template" )        \
-	Entry( Decl_Typedef,           "typedef" )         \
-	Entry( Decl_Using,             "using" )           \
-	Entry( Decl_Union,             "union" )           \
-	Entry( Identifier,             "__identifier__" )  \
-	Entry( Module_Import,          "import" )          \
-	Entry( Module_Export,          "export" )          \
-	Entry( Number,                 "number" )          \
-	Entry( Operator,               "operator" )        \
-	Entry( Preprocessor_Directive, "#")                \
-	Entry( Preprocessor_Include,   "include" )         \
-	Entry( Spec_Alignas,           "alignas" )         \
-	Entry( Spec_Const,             "const" )           \
-	Entry( Spec_Consteval,         "consteval" )       \
-	Entry( Spec_Constexpr,         "constexpr" )       \
-	Entry( Spec_Constinit,         "constinit" )       \
-	Entry( Spec_Extern,            "extern" )          \
-	Entry( Spec_Global, 		   "global" )          \
-	Entry( Spec_Inline,            "inline" )          \
-	Entry( Spec_Internal_Linkage,  "internal" )        \
-	Entry( Spec_LocalPersist,      "local_persist" )   \
-	Entry( Spec_Mutable,           "mutable" )         \
-	Entry( Spec_Static,            "static" )          \
-	Entry( Spec_ThreadLocal,       "thread_local" )    \
-	Entry( Spec_Volatile,          "volatile")         \
-	Entry( Star,                   "*" )               \
-	Entry( Statement_End,          ";" )               \
-	Entry( String,                 "__string__" )      \
-	Entry( Type_Unsigned, 	       "unsigned" )        \
-	Entry( Type_Signed,            "signed" )          \
-	Entry( Type_Short,             "short" )           \
-	Entry( Type_Long,              "long" )            \
-	Entry( Type_char, 			   "char" )            \
-	Entry( Type_int, 			   "int" )             \
-	Entry( Type_double, 		   "double" )
+	Entry( Access_Private,         "private" )          \
+	Entry( Access_Protected,       "protected" )        \
+	Entry( Access_Public,          "public" )           \
+	Entry( Access_MemberSymbol,    "." )                \
+	Entry( Access_StaticSymbol,    "::")                \
+	Entry( Ampersand,              "&" )                \
+	Entry( Ampersand_DBL,          "&&" )               \
+	Entry( Assign_Classifer,       ":" )                \
+	Entry( Attribute_Open, 	       "[[" )               \
+	Entry( Attribute_Close, 	   "]]" )               \
+	Entry( BraceCurly_Open,        "{" )                \
+	Entry( BraceCurly_Close,       "}" )                \
+	Entry( BraceSquare_Open,       "[" )                \
+	Entry( BraceSquare_Close,      "]" )                \
+	Entry( Capture_Start,          "(" )                \
+	Entry( Capture_End,            ")" )                \
+	Entry( Comment,                "__comment__" )      \
+	Entry( Char,                   "__char__" )         \
+	Entry( Comma,                  "," )                \
+	Entry( Decl_Class,             "class" )            \
+	Entry( Decl_GNU_Attribute,    "__attribute__" )     \
+	Entry( Decl_MSVC_Attribute,    "__declspec" )       \
+	Entry( Decl_Enum,              "enum" )             \
+	Entry( Decl_Extern_Linkage,    "extern" )           \
+	Entry( Decl_Friend,            "friend" )           \
+	Entry( Decl_Module,            "module" )           \
+	Entry( Decl_Namespace,         "namespace" )        \
+	Entry( Decl_Operator,          "operator" )         \
+	Entry( Decl_Struct,            "struct" )           \
+	Entry( Decl_Template,          "template" )         \
+	Entry( Decl_Typedef,           "typedef" )          \
+	Entry( Decl_Using,             "using" )            \
+	Entry( Decl_Union,             "union" )            \
+	Entry( Identifier,             "__identifier__" )   \
+	Entry( Module_Import,          "import" )           \
+	Entry( Module_Export,          "export" )           \
+	Entry( Number,                 "number" )           \
+	Entry( Operator,               "operator" )         \
+	Entry( Preprocessor_Directive, "#")                 \
+	Entry( Preprocessor_Include,   "include" )          \
+	Entry( Spec_Alignas,           "alignas" )          \
+	Entry( Spec_Const,             "const" )            \
+	Entry( Spec_Consteval,         "consteval" )        \
+	Entry( Spec_Constexpr,         "constexpr" )        \
+	Entry( Spec_Constinit,         "constinit" )        \
+	Entry( Spec_Explicit, 		   "explicit" )         \
+	Entry( Spec_Extern,            "extern" )           \
+	Entry( Spec_Final, 		       "final" )            \
+	Entry( Spec_Global, 		   "global" )           \
+	Entry( Spec_Inline,            "inline" )           \
+	Entry( Spec_Internal_Linkage,  "internal" )         \
+	Entry( Spec_LocalPersist,      "local_persist" )    \
+	Entry( Spec_Mutable,           "mutable" )          \
+	Entry( Spec_Override,          "override" )         \
+	Entry( Spec_Static,            "static" )           \
+	Entry( Spec_ThreadLocal,       "thread_local" )     \
+	Entry( Spec_Volatile,          "volatile")          \
+	Entry( Star,                   "*" )                \
+	Entry( Statement_End,          ";" )                \
+	Entry( String,                 "__string__" )       \
+	Entry( Type_Unsigned, 	       "unsigned" )         \
+	Entry( Type_Signed,            "signed" )           \
+	Entry( Type_Short,             "short" )            \
+	Entry( Type_Long,              "long" )             \
+	Entry( Type_char, 			   "char" )             \
+	Entry( Type_int, 			   "int" )              \
+	Entry( Type_double, 		   "double" )           \
+	Entry( Attributes_Start,       "__attrib_start__" )
 
 	enum class TokType : u32
 	{
 	#	define Entry( Name_, Str_ ) Name_,
 		Define_TokType
+		GEN_Define_Attribute_Tokens
 	#	undef Entry
-		Attr_Keyword,
-
 		Num,
 		Invalid
 	};
@@ -3408,9 +3513,8 @@ namespace Parser
 		{
 		#	define Entry( Name_, Str_ ) { sizeof(Str_), Str_ },
 			Define_TokType
+			GEN_Define_Attribute_Tokens
 		#	undef Entry
-
-			{ sizeof(Attribute::Keyword), Attribute::Keyword },
 		};
 
 		for ( u32 index = 0; index < (u32)TokType::Num; index++ )
@@ -3436,9 +3540,8 @@ namespace Parser
 		{
 		#	define Entry( Name_, Str_ ) Str_,
 			Define_TokType
+			GEN_Define_Attribute_Tokens
 		#	undef Entry
-
-			Attribute::Keyword,
 		};
 
 		return lookup[(u32)type];
@@ -3467,6 +3570,11 @@ namespace Parser
 		return scast(AccessSpec, tok.Type);
 	}
 
+	internal inline
+	bool tok_is_attribute( Token const& tok )
+	{
+		return tok.Type > TokType::Attributes_Start;
+	}
 
 	struct TokArray
 	{
@@ -4109,6 +4217,74 @@ Code parse_array_decl( Parser::TokArray& toks, char const* context )
 }
 
 internal inline
+CodeAttributes parse_attributes( Parser::TokArray& toks, char const* context )
+{
+	using namespace Parser;
+
+	Token start;
+	s32 len = 0;
+
+	if ( check(TokType::Attribute_Open) )
+	{
+		eat( TokType::Attribute_Open);
+
+		while ( left && currtok.Type != TokType::Attribute_Close )
+		{
+			eat( currtok.Type );
+		}
+
+		eat( TokType::Attribute_Close );
+
+		s32 len = ( (sptr)prevtok.Text + prevtok.Length ) - (sptr)start.Text;
+	}
+
+	else if ( check(TokType::Decl_GNU_Attribute) )
+	{
+		eat(TokType::BraceCurly_Open);
+		eat(TokType::BraceCurly_Open);
+
+		while ( left && currtok.Type != TokType::BraceCurly_Close )
+		{
+			eat(currtok.Type);
+		}
+
+		eat(TokType::BraceCurly_Close);
+		eat(TokType::BraceCurly_Close);
+
+		s32 len = ( (sptr)prevtok.Text + prevtok.Length ) - (sptr)start.Text;
+	}
+
+	else if ( check(TokType::Decl_MSVC_Attribute) )
+	{
+		eat( TokType::Decl_MSVC_Attribute );
+		eat( TokType::BraceCurly_Open);
+
+		while ( left && currtok.Type != TokType::BraceCurly_Close )
+		{
+			eat(currtok.Type);
+		}
+
+		eat(TokType::BraceCurly_Close);
+
+		s32 len = ( (sptr)prevtok.Text + prevtok.Length ) - (sptr)start.Text;
+	}
+
+	else if ( tok_is_attribute( currtok ) )
+	{
+		eat(currtok.Type);
+		s32 len = start.Length;
+	}
+
+	if ( len > 0 )
+	{
+		StrC attribute_txt = { len, start.Text };
+		return def_attributes( attribute_txt );
+	}
+
+	return { nullptr };
+}
+
+internal inline
 Parser::Token parse_identifier( Parser::TokArray& toks, char const* context )
 {
 	using namespace Parser;
@@ -4288,9 +4464,9 @@ CodeParam parse_params( Parser::TokArray& toks, char const* context, bool use_te
 // Function parsing is handled in multiple places because its initial signature is shared with variable parsing
 internal inline
 CodeFn parse_function_after_name(
-		ModuleFlag        mflags
+	  ModuleFlag        mflags
 	, CodeAttributes    attributes
-	, CodeSpecifier     specifiers
+	, CodeSpecifiers    specifiers
 	, CodeType          ret_type
 	, StrC              name
 	, Parser::TokArray& toks
@@ -4300,6 +4476,12 @@ CodeFn parse_function_after_name(
 	using namespace Parser;
 
 	CodeParam params = parse_params( toks, stringize(parse_function) );
+
+	while ( left && tok_is_specifier( currtok ) )
+	{
+		specifiers.append( ESpecifier::to_type(currtok) );
+		eat( currtok.Type );
+	}
 
 	CodeBody body = { nullptr };
 	if ( check( TokType::BraceCurly_Open ) )
@@ -4357,7 +4539,7 @@ CodeFn parse_function_after_name(
 internal inline
 CodeOperator parse_operator_after_ret_type( ModuleFlag mflags
 	, CodeAttributes attributes
-	, CodeSpecifier  specifiers
+	, CodeSpecifiers  specifiers
 	, CodeType       ret_type
 	, Parser::TokArray& toks
 	, char const* context )
@@ -4565,6 +4747,12 @@ CodeOperator parse_operator_after_ret_type( ModuleFlag mflags
 	// Parse Params
 	CodeParam params = parse_params( toks, stringize(parse_operator) );
 
+	while ( left && tok_is_specifier( currtok ) )
+	{
+		specifiers.append( ESpecifier::to_type(currtok) );
+		eat( currtok.Type );
+	}
+
 	// Parse Body
 	CodeBody body = { nullptr };
 	if ( check( TokType::BraceCurly_Open ) )
@@ -4586,9 +4774,9 @@ CodeOperator parse_operator_after_ret_type( ModuleFlag mflags
 // Variable parsing is handled in multiple places because its initial signature is shared with function parsing
 internal inline
 CodeVar parse_variable_after_name(
-		ModuleFlag        mflags
+	  ModuleFlag        mflags
 	, CodeAttributes    attributes
-	, CodeSpecifier     specifiers
+	,CodeSpecifiers    specifiers
 	, CodeType          type
 	, StrC              name
 	, Parser::TokArray& toks
@@ -4680,7 +4868,7 @@ Code parse_variable_assignment( Parser::TokArray& toks, char const* context )
 }
 
 internal inline
-Code parse_operator_function_or_variable( bool expects_function, CodeAttributes attributes, CodeSpecifier specifiers, Parser::TokArray& toks, char const* context )
+Code parse_operator_function_or_variable( bool expects_function, CodeAttributes attributes, CodeSpecifiers specifiers, Parser::TokArray& toks, char const* context )
 {
 	using namespace Parser;
 
@@ -4711,7 +4899,7 @@ Code parse_operator_function_or_variable( bool expects_function, CodeAttributes 
 		{
 			if ( expects_function )
 			{
-				log_failure( "gen::parse_template: expected function declaration (consteval was used)" );
+				log_failure( "gen::parse_operator_function_or_variable: expected function declaration (consteval was used)" );
 				return Code::Invalid;
 			}
 
@@ -4744,7 +4932,7 @@ CodeBody parse_class_struct_body( Parser::TokType which, Parser::TokArray& toks,
 	{
 		Code           member     = Code::Invalid;
 		CodeAttributes attributes = { nullptr };
-		CodeSpecifier  specifiers = { nullptr };
+		CodeSpecifiers specifiers = { nullptr };
 
 		bool expects_function = false;
 
@@ -4809,36 +4997,14 @@ CodeBody parse_class_struct_body( Parser::TokType which, Parser::TokArray& toks,
 				member = parse_using( toks, context );
 			break;
 
-			case TokType::BraceSquare_Open:
-			case TokType::Attr_Keyword:
+			case TokType::Attribute_Open:
+			case TokType::Decl_GNU_Attribute:
+			case TokType::Decl_MSVC_Attribute:
+		#define Entry( attribute, str ) case TokType::attribute:
+			GEN_Define_Attribute_Tokens
+		#undef Entry
 			{
-				// Standard attribute
-				if ( currtok.Type == TokType::BraceSquare_Open  )
-				{
-					eat( TokType::BraceSquare_Open );
-
-					if ( currtok.Type != TokType::BraceSquare_Open )
-					{
-						log_failure( "%s: Error, expected attribute name", context );
-						return result;
-					}
-
-					while ( left && currtok.Type != TokType::BraceSquare_Close )
-					{
-						// TODO : Parse attributes
-					}
-
-					eat( TokType::BraceSquare_Close );
-					eat( TokType::BraceSquare_Close );
-				}
-
-				// Platform Specific attribute
-				eat( TokType::Attr_Keyword );
-				eat( TokType::Capture_Start );
-
-				// TODO : Parse attributes
-
-				eat( TokType::Capture_End );
+				attributes = parse_attributes( toks, context );
 			}
 			//! Fallthrough intended
 			case TokType::Spec_Consteval:
@@ -4943,11 +5109,15 @@ Code parse_class_struct( Parser::TokType which, Parser::TokArray& toks, char con
 
 	CodeClass result = CodeInvalid;
 
-	// TODO : Parse module specifiers
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
 
 	eat( which );
 
-	// TODO : Parse attributes
+	attributes = parse_attributes( toks, context );
 
 	if ( check( TokType::Identifier ) )
 		name = parse_identifier( toks, context );
@@ -4979,16 +5149,14 @@ Code parse_class_struct( Parser::TokType which, Parser::TokArray& toks, char con
 
 	if ( which == TokType::Decl_Class )
 		result = def_class( name, body, parent, access
-			// TODO : Set these up later
-			, NoCode // Attributes
-			, ModuleFlag::None
+			, attributes
+			, mflags
 		);
 
 	else
 		result = def_struct( name, body, (CodeType)parent, access
-			// TODO : Set these up later
-			, NoCode // Attributes
-			, ModuleFlag::None
+			, attributes
+			, mflags
 		);
 
 	return result;
@@ -5053,7 +5221,7 @@ CodeBody parse_global_nspace( CodeT which, Parser::TokArray& toks, char const* c
 	{
 		Code           member     = Code::Invalid;
 		CodeAttributes attributes = { nullptr };
-		CodeSpecifier  specifiers = { nullptr };
+		CodeSpecifiers specifiers = { nullptr };
 
 		bool expects_function = false;
 
@@ -5115,38 +5283,13 @@ CodeBody parse_global_nspace( CodeT which, Parser::TokArray& toks, char const* c
 				not_implemented( context );
 			}
 			//! Fallthrough intentional
-			case TokType::BraceSquare_Open:
-			case TokType::Attr_Keyword:
+			case TokType::Decl_GNU_Attribute:
+			case TokType::Decl_MSVC_Attribute:
+		#define Entry( attribute, str ) case TokType::attribute:
+			GEN_Define_Attribute_Tokens
+		#undef Entry
 			{
-				not_implemented( context );
-
-				// Standard attribute
-				if ( currtok.Type == TokType::BraceSquare_Open  )
-				{
-					eat( TokType::BraceSquare_Open );
-
-					if ( currtok.Type != TokType::BraceSquare_Open )
-					{
-						log_failure( "%s: Error, expected attribute name", context );
-						return result;
-					}
-
-					while ( left && currtok.Type != TokType::BraceSquare_Close )
-					{
-						// TODO : Parse attributes
-					}
-
-					eat( TokType::BraceSquare_Close );
-					eat( TokType::BraceSquare_Close );
-				}
-
-				// Platform Specific attribute
-				eat( TokType::Attr_Keyword );
-				eat( TokType::Capture_Start );
-
-				// TODO : Parse attributes
-
-				eat( TokType::Capture_End );
+				attributes = parse_attributes( toks, context );
 			}
 			//! Fallthrough intentional
 			case TokType::Spec_Consteval:
@@ -5493,11 +5636,16 @@ CodeFn parse_functon( Parser::TokArray& toks, char const* context )
 	s32        num_specifiers = 0;
 
 	CodeAttributes attributes = { nullptr };
-	CodeSpecifier  specifiers = { nullptr };
+	CodeSpecifiers  specifiers = { nullptr };
+	ModuleFlag     mflags     = ModuleFlag::None;
 
-	// TODO : Parse module specifiers
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
 
-	// TODO : Parse attributes
+	attributes = parse_attributes( toks, context );
 
 	while ( left && tok_is_specifier( currtok ) )
 	{
@@ -5518,6 +5666,9 @@ CodeFn parse_functon( Parser::TokArray& toks, char const* context )
 				return CodeInvalid;
 		}
 
+		if ( spec == ESpecifier::Const )
+			continue;
+
 		specs_found[num_specifiers] = spec;
 		num_specifiers++;
 		eat( currtok.Type );
@@ -5536,7 +5687,7 @@ CodeFn parse_functon( Parser::TokArray& toks, char const* context )
 	if ( ! name )
 		return CodeInvalid;
 
-	CodeFn result = parse_function_after_name( ModuleFlag::None, attributes, specifiers, ret_type, name, toks, context );
+	CodeFn result = parse_function_after_name( mflags, attributes, specifiers, ret_type, name, toks, context );
 
 	return result;
 }
@@ -5603,15 +5754,22 @@ CodeNamespace parse_namespace( StrC def )
 internal
 CodeOperator parse_operator( Parser::TokArray& toks, char const* context )
 {
-	// TODO : Parse Module specifier
+	using namespace Parser;
 
-	// TODO : Parse Attributes
 	CodeAttributes attributes = { nullptr };
-
-	CodeSpecifier specifiers = { nullptr };
+	CodeSpecifiers specifiers = { nullptr };
+	ModuleFlag     mflags     = ModuleFlag::None;
 
 	SpecifierT specs_found[16] { ESpecifier::Num_Specifiers };
 	s32        num_specifiers = 0;
+
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
+
+	attributes = parse_attributes( toks, context );
 
 	while ( left && tok_is_specifier( currtok ) )
 	{
@@ -5630,6 +5788,9 @@ CodeOperator parse_operator( Parser::TokArray& toks, char const* context )
 				return CodeInvalid;
 		}
 
+		if ( spec == ESpecifier::Const )
+			continue;
+
 		specs_found[num_specifiers] = spec;
 		num_specifiers++;
 		eat( currtok.Type );
@@ -5643,7 +5804,7 @@ CodeOperator parse_operator( Parser::TokArray& toks, char const* context )
 	// Parse Return Type
 	CodeType ret_type = parse_type( toks, stringize(parse_operator) );
 
-	CodeOperator result = parse_operator_after_ret_type( ModuleFlag::None, attributes, specifiers, ret_type, toks, context );
+	CodeOperator result = parse_operator_after_ret_type( mflags, attributes, specifiers, ret_type, toks, context );
 	return result;
 }
 
@@ -5669,6 +5830,11 @@ CodeOpCast parse_operator_cast( Parser::TokArray& toks, char const* context )
 
 	eat( TokType::Capture_Start );
 	eat( TokType::Capture_End );
+
+	CodeSpecifiers specifiers = { nullptr };
+
+	if ( check(TokType::Spec_Const))
+		specifiers = spec_const;
 
 	Code body = { nullptr };
 
@@ -5708,6 +5874,9 @@ CodeOpCast parse_operator_cast( Parser::TokArray& toks, char const* context )
 	{
 		result->Type = ECode::Operator_Cast_Fwd;
 	}
+
+	if ( specifiers )
+		result->Specs = specifiers;
 
 	result->ValueType = type;
 
@@ -5751,7 +5920,13 @@ CodeTemplate parse_template( Parser::TokArray& toks, char const* context )
 
 	using namespace Parser;
 
-	// TODO : Parse Module specifier
+	ModuleFlag mflags = ModuleFlag::None;
+
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
 
 	eat( TokType::Decl_Template );
 
@@ -5784,16 +5959,15 @@ CodeTemplate parse_template( Parser::TokArray& toks, char const* context )
 		// Its either a function or a variable
 		Token name = { nullptr, 0, TokType::Invalid };
 
-
-		CodeAttributes attributes   = { nullptr };
-		CodeSpecifier  specifiers   = { nullptr };
-
-		// TODO : Parse attributes
+		CodeAttributes attributes = { nullptr };
+		CodeSpecifiers specifiers  = { nullptr };
 
 		bool expects_function = false;
 
 		SpecifierT specs_found[16] { ESpecifier::Num_Specifiers };
 		s32        num_specifiers = 0;
+
+		attributes = parse_attributes( toks, stringize(parse_template) );
 
 		while ( left && tok_is_specifier( currtok ) )
 		{
@@ -5846,6 +6020,7 @@ CodeTemplate parse_template( Parser::TokArray& toks, char const* context )
 	result->Type        = ECode::Template;
 	result->Params      = params;
 	result->Declaration = definition;
+	result->ModuleFlags = mflags;
 
 	return result;
 #	undef UseTemplateCapture
@@ -5875,6 +6050,8 @@ CodeType parse_type( Parser::TokArray& toks, char const* context )
 
 	Token name      = { nullptr, 0, TokType::Invalid };
 	Token brute_sig = { currtok.Text, 0, TokType::Invalid };
+
+	CodeAttributes attributes = parse_attributes( toks, context );
 
 	while ( left && tok_is_specifier( currtok ) )
 	{
@@ -6030,6 +6207,9 @@ CodeType parse_type( Parser::TokArray& toks, char const* context )
 
 	result->Name = get_cached_string( name );
 
+	if ( attributes )
+		result->Attributes = attributes;
+
 	return result;
 }
 
@@ -6056,13 +6236,24 @@ CodeTypedef parse_typedef( Parser::TokArray& toks, char const* context )
 	Code  array_expr = { nullptr };
 	Code  type       = { nullptr };
 
+	ModuleFlag mflags = ModuleFlag::None;
+
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
+
 	eat( TokType::Decl_Typedef );
 
 	if ( check( TokType::Decl_Enum ) )
 		type = parse_enum( toks, context );
 
+	else if ( check(TokType::Decl_Class ) )
+		type = parse_class( toks, context );
+
 	else if ( check(TokType::Decl_Struct ) )
-		type = parse_enum( toks, context );
+		type = parse_struct( toks, context );
 
 	else if ( check(TokType::Decl_Union) )
 		type = parse_union( toks, context );
@@ -6086,9 +6277,10 @@ CodeTypedef parse_typedef( Parser::TokArray& toks, char const* context )
 	using namespace ECode;
 
 	CodeTypedef
-	result       = (CodeTypedef) make_code();
-	result->Type = Typedef;
-	result->Name = get_cached_string( name );
+	result              = (CodeTypedef) make_code();
+	result->Type        = Typedef;
+	result->Name        = get_cached_string( name );
+	result->ModuleFlags = mflags;
 
 	result->UnderlyingType = type;
 
@@ -6115,12 +6307,17 @@ CodeUnion parse_union( Parser::TokArray& toks, char const* context )
 {
 	using namespace Parser;
 
-	// TODO : Parse module spec
+	ModuleFlag mflags = ModuleFlag::None;
+
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
 
 	eat( TokType::Decl_Union );
 
-	// TODO : Parse attributes
-	CodeAttributes attributes = { nullptr };
+	CodeAttributes attributes = parse_attributes( toks, context );
 
 	StrC name = { 0, nullptr };
 
@@ -6150,7 +6347,8 @@ CodeUnion parse_union( Parser::TokArray& toks, char const* context )
 
 	CodeUnion
 	result = (CodeUnion) make_code();
-	result->Type = ECode::Union;
+	result->Type        = ECode::Union;
+	result->ModuleFlags = mflags;
 
 	if ( name )
 		result->Name = get_cached_string( name );
@@ -6181,7 +6379,7 @@ CodeUsing parse_using( Parser::TokArray& toks, char const* context )
 {
 	using namespace Parser;
 
-	SpecifierT specs_found[16] { ESpecifier::Num_Specifiers };
+	SpecifierT specs_found[16] { ESpecifier::Invalid };
 	s32        num_specifiers = 0;
 
 	Token    name       = { nullptr, 0, TokType::Invalid };
@@ -6190,7 +6388,14 @@ CodeUsing parse_using( Parser::TokArray& toks, char const* context )
 
 	bool is_namespace = false;
 
-	// TODO : Parse module specs
+	ModuleFlag     mflags     = ModuleFlag::None;
+	CodeAttributes attributes = { nullptr };
+
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
 
 	eat( TokType::Decl_Using );
 
@@ -6205,7 +6410,7 @@ CodeUsing parse_using( Parser::TokArray& toks, char const* context )
 
 	if ( currtok.IsAssign )
 	{
-		// TODO : Parse Attributes (using type-alias)
+		attributes = parse_attributes( toks, context );
 
 		eat( TokType::Operator );
 
@@ -6219,8 +6424,9 @@ CodeUsing parse_using( Parser::TokArray& toks, char const* context )
 	using namespace ECode;
 
 	CodeUsing
-	result       = (CodeUsing) make_code();
-	result->Name = get_cached_string( name );
+	result              = (CodeUsing) make_code();
+	result->Name        = get_cached_string( name );
+	result->ModuleFlags = mflags;
 
 	if ( is_namespace)
 	{
@@ -6235,6 +6441,9 @@ CodeUsing parse_using( Parser::TokArray& toks, char const* context )
 
 		if ( array_expr )
 			type->ArrExpr = array_expr;
+
+		if ( attributes )
+			result->Attributes = attributes;
 	}
 	return result;
 }
@@ -6261,12 +6470,17 @@ CodeVar parse_variable( Parser::TokArray& toks, char const* context )
 	SpecifierT specs_found[16] { ESpecifier::Num_Specifiers };
 	s32        num_specifiers = 0;
 
+	ModuleFlag	   mflags     = ModuleFlag::None;
 	CodeAttributes attributes = { nullptr };
-	CodeSpecifier  specifiers = { nullptr };
+	CodeSpecifiers specifiers = { nullptr };
 
-	// TODO : Parse module specifiers
+	if ( check(TokType::Module_Export) )
+	{
+		mflags = ModuleFlag::Export;
+		eat( TokType::Module_Export );
+	}
 
-	// TODO : Parse attributes
+	attributes = parse_attributes( toks, context );
 
 	while ( left && tok_is_specifier( currtok ) )
 	{
@@ -6314,7 +6528,7 @@ CodeVar parse_variable( Parser::TokArray& toks, char const* context )
 	name = currtok;
 	eat( TokType::Identifier );
 
-	CodeVar result = parse_variable_after_name( ModuleFlag::None, attributes, specifiers, type, name, toks, context );
+	CodeVar result = parse_variable_after_name( mflags, attributes, specifiers, type, name, toks, context );
 
 	return result;
 }
@@ -6344,11 +6558,13 @@ sw token_fmt_va( char* buf, uw buf_size, s32 num_tokens, va_list va )
 	char const* buf_begin = buf;
 	sw          remaining = buf_size;
 
-	static Arena tok_map_arena;
+	local_persist
+	Arena tok_map_arena;
 
 	HashTable<StrC> tok_map;
 	{
-		static char tok_map_mem[ TokenFmt_TokenMap_MemSize ];
+		local_persist
+		char tok_map_mem[ TokenFmt_TokenMap_MemSize ];
 
 		tok_map_arena = Arena::init_from_memory( tok_map_mem, sizeof(tok_map_mem) );
 
@@ -6534,7 +6750,6 @@ void Builder::write()
 }
 #pragma endregion Builder
 
-// namespace gen
-}
+GEN_NS_END
 
 #include "gen.pop_ignores.inline.hpp"

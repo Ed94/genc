@@ -20,7 +20,15 @@
 #	include "gen.dep.hpp"
 #endif
 
-namespace gen {
+#if defined(GEN_DONT_USE_NAMESPACE) && ! defined(GEN_NS_BEGIN)
+#	define GEN_NS_BEGIN
+#	define GEN_NS_END
+#elif ! defined(GEN_NS_BEGIN)
+#  define GEN_NS_BEGIN namespace gen {
+#  define GEN_NS_END   }
+#endif
+
+GEN_NS_BEGIN
 
 #pragma region Types
 using LogFailType = sw(*)(char const*, ...);
@@ -204,10 +212,10 @@ namespace ESpecifier
 
 #	define Define_Specifiers                     \
 	Entry( Invalid,          INVALID )           \
-	Entry( Const,            const )             \
 	Entry( Consteval,        consteval )         \
 	Entry( Constexpr,        constexpr )         \
 	Entry( Constinit,        constinit )         \
+	Entry( Explicit,         explicit )          \
 	Entry( External_Linkage, extern )            \
 	Entry( Global,           global )            \
 	Entry( Inline,           inline )            \
@@ -220,7 +228,11 @@ namespace ESpecifier
 	Entry( RValue,           && )                \
 	Entry( Static,           static  )           \
 	Entry( Thread_Local,     thread_local )      \
-	Entry( Volatile,         volatile )
+	Entry( Volatile,         volatile )          \
+	Entry( Virtual,          virtual )           \
+	Entry( Const,            const )             \
+	Entry( Final,            final )             \
+	Entry( Override,         override )
 
 	enum Type : u32
 	{
@@ -230,6 +242,12 @@ namespace ESpecifier
 
 		Num_Specifiers,
 	};
+
+	inline
+	bool is_trailing( Type specifier )
+	{
+		return specifier > Virtual;
+	}
 
 	// Specifier to string
 	inline
@@ -333,40 +351,48 @@ ModuleFlag operator|( ModuleFlag A, ModuleFlag B)
 
 /*
 	Predefined attributes
-
 	Used for the parser constructors to identify non-standard attributes
+
+	Override these to change the attribute to your own unique identifier convention.
+
+	The tokenizer identifies attribute defines with the GEN_Define_Attribute_Tokens macros.
+	See the example below and the Define_TokType macro used in gen.cpp to know the format.
+	While the library can parse raw attributes, most projects use defines to wrap them for compiler
+	platform indendence. The token define allows support for them without having to modify the library.
 */
-namespace Attribute
-{
 #if defined(GEN_SYSTEM_WINDOWS) || defined( __CYGWIN__ )
-#	define GEN_API_
+#ifndef GEN_Attribute_Keyword
 #	define GEN_API_Export_Code   __declspec(dllexport)
 #	define GEN_API_Import_Code   __declspec(dllimport)
 #	define GEN_Attribute_Keyword __declspec
+#endif
 
-	constexpr char const* API_Export = stringize( GEN_API_Export_Code  );
-	constexpr char const* API_Import = stringize( GEN_API_Import_Code  );
-	constexpr char const* Keyword    = stringize( GEN_Attribute_Keyword);
+constexpr char const* Attribute_Keyword = stringize( GEN_Attribute_Keyword);
 
 #elif GEN_HAS_ATTRIBUTE( visibility ) || GEN_GCC_VERSION_CHECK( 3, 3, 0 )
+#ifndef GEN_Attribute_Keyword
 #	define GEN_API_Export_Code   __attribute__ ((visibility ("default")))
 #	define GEN_API_Import_Code   __attribute__ ((visibility ("default")))
 #	define GEN_Attribute_Keyword __attribute__
+#endif
 
-	constexpr char const* API_Export = stringize( GEN_API_Export_Code );
-	constexpr char const* API_Import = stringize( GEN_API_Import_Code );
-	constexpr char const* Keyword    = stringize( GEN_Attribute_Keyword);
+constexpr char const* Attribute_Keyword = stringize( GEN_Attribute_Keyword );
 
 #else
+#ifndef GEN_Attribute_Keyword
 #	define GEN_API_Export_Code
 #	define GEN_API_Import_Code
 #	define GEN_Attribute_Keyword
-
-	constexpr char const* API_Export = "";
-	constexpr char const* API_Import = "";
-	constexpr char const* Keyword    = "";
 #endif
-}
+
+constexpr char const* Attribute_Keyword = "";
+#endif
+
+#ifndef GEN_Define_Attribute_Tokens
+#	define GEN_Define_Attribute_Tokens         \
+	Entry( API_Export, "GEN_API_Export_Code" ) \
+	Entry( API_Import, "GEN_API_Import_Code" )
+#endif
 #pragma endregion Types
 
 #pragma region Data Structures
@@ -393,7 +419,7 @@ struct AST_Namespace;
 struct AST_Operator;
 struct AST_OpCast;
 struct AST_Param;
-struct AST_Specifier;
+struct AST_Specifiers;
 struct AST_Struct;
 struct AST_Template;
 struct AST_Type;
@@ -420,7 +446,7 @@ struct CodeNamespace;
 struct CodeOperator;
 struct CodeOpCast;
 struct CodeParam;
-struct CodeSpecifier;
+struct CodeSpecifiers;
 struct CodeStruct;
 struct CodeTemplate;
 struct CodeType;
@@ -498,7 +524,7 @@ struct Code
 	operator CodeOperator() const;
 	operator CodeOpCast() const;
 	operator CodeParam() const;
-	operator CodeSpecifier() const;
+	operator CodeSpecifiers() const;
 	operator CodeStruct() const;
 	operator CodeTemplate() const;
 	operator CodeType() const;
@@ -559,7 +585,7 @@ struct AST
 	operator CodeOperator();
 	operator CodeOpCast();
 	operator CodeParam();
-	operator CodeSpecifier();
+	operator CodeSpecifiers();
 	operator CodeStruct();
 	operator CodeTemplate();
 	operator CodeType();
@@ -629,7 +655,7 @@ struct AST_POD
 	union {
 		struct
 		{
-			AST*      Attributes;     // Class, Enum, Function, Struct, Typedef, Union, Using, Variable
+			AST*      Attributes;     // Class, Enum, Function, Struct, Typename, Union, Using, Variable
 			AST*      Specs;          // Function, Operator, Type symbol, Variable
 			union {
 				AST*  ParentType;     // Class, Struct
@@ -818,15 +844,15 @@ struct CodeParam
 	AST_Param* ast;
 };
 
-struct CodeSpecifier
+struct CodeSpecifiers
 {
-	Using_Code( CodeSpecifier );
+	Using_Code( CodeSpecifiers );
 
 	bool append( SpecifierT spec )
 	{
 		if ( raw()->NumEntries == AST::ArrSpecs_Cap )
 		{
-			log_failure("CodeSpecifier: Attempted to append over %d specifiers to a specifiers AST!", AST::ArrSpecs_Cap );
+			log_failure("CodeSpecifiers: Attempted to append over %d specifiers to a specifiers AST!", AST::ArrSpecs_Cap );
 			return false;
 		}
 
@@ -848,7 +874,7 @@ struct CodeSpecifier
 	{
 		return rcast( AST*, ast );
 	}
-	AST_Specifier* operator->()
+	AST_Specifiers* operator->()
 	{
 		if ( ast == nullptr )
 		{
@@ -875,7 +901,7 @@ struct CodeSpecifier
 	}
 #pragma endregion Iterator
 
-	AST_Specifier* ast;
+	AST_Specifiers* ast;
 };
 
 #undef Define_CodeType
@@ -1056,7 +1082,7 @@ struct AST_Fn
 		struct
 		{
 			CodeAttributes  Attributes;
-			CodeSpecifier   Specs;
+			CodeSpecifiers  Specs;
 			CodeType        ReturnType;
 			CodeParam 	    Params;
 			CodeBody        Body;
@@ -1111,7 +1137,7 @@ struct AST_Operator
 		struct
 		{
 			CodeAttributes  Attributes;
-			CodeSpecifier   Specs;
+			CodeSpecifiers  Specs;
 			CodeType        ReturnType;
 			CodeParam 	    Params;
 			CodeBody        Body;
@@ -1133,10 +1159,11 @@ struct AST_OpCast
 		char          _PAD_[ sizeof(SpecifierT) * AST::ArrSpecs_Cap ];
 		struct
 		{
-			char 	  _PAD_PROPERTIES_[ sizeof(AST*) * 2 ];
-			CodeType  ValueType;
-			char 	  _PAD_PROPERTIES_2_[ sizeof(AST*) ];
-			CodeBody  Body;
+			char 	       _PAD_PROPERTIES_[ sizeof(AST*)  ];
+			CodeSpecifiers Specs;
+			CodeType       ValueType;
+			char 	       _PAD_PROPERTIES_2_[ sizeof(AST*) ];
+			CodeBody       Body;
 		};
 	};
 	Code              Prev;
@@ -1170,7 +1197,7 @@ struct AST_Param
 };
 static_assert( sizeof(AST_Param) == sizeof(AST), "ERROR: AST_Param is not the same size as AST");
 
-struct AST_Specifier
+struct AST_Specifiers
 {
 	SpecifierT        ArrSpecs[ AST::ArrSpecs_Cap ];
 	Code              Prev;
@@ -1181,7 +1208,7 @@ struct AST_Specifier
 	char 			  _PAD_UNUSED_[ sizeof(ModuleFlag) ];
 	s32               NumEntries;
 };
-	static_assert( sizeof(AST_Specifier) == sizeof(AST), "ERROR: AST_Specifier is not the same size as AST");
+	static_assert( sizeof(AST_Specifiers) == sizeof(AST), "ERROR: AST_Specifier is not the same size as AST");
 
 struct AST_Struct
 {
@@ -1234,7 +1261,7 @@ struct AST_Type
 		struct
 		{
 			CodeAttributes Attributes;
-			CodeSpecifier  Specs;
+			CodeSpecifiers Specs;
 			char 	       _PAD_PROPERTIES_[ sizeof(AST*) * 2 ];
 			Code           ArrExpr;
 		};
@@ -1254,10 +1281,9 @@ struct AST_Typedef
 		char 		       _PAD_[ sizeof(SpecifierT) * AST::ArrSpecs_Cap ];
 		struct
 		{
-			CodeAttributes Attributes;
-			char 	       _PAD_SPECS_     [ sizeof(AST*) ];
-			Code           UnderlyingType;
 			char 	       _PAD_PROPERTIES_[ sizeof(AST*) * 2 ];
+			Code           UnderlyingType;
+			char 	       _PAD_PROPERTIES_2_[ sizeof(AST*) * 2 ];
 		};
 	};
 	Code                   Prev;
@@ -1320,7 +1346,7 @@ struct AST_Var
 		struct
 		{
 			CodeAttributes Attributes;
-			CodeSpecifier  Specs;
+			CodeSpecifiers Specs;
 			CodeType       ValueType;
 			char 	       _PAD_PROPERTIES_[ sizeof(AST*) ];
 			Code           Value;
@@ -1394,7 +1420,7 @@ CodeFriend def_friend     ( Code symbol );
 
 CodeFn def_function( StrC name
 	, CodeParam      params     = NoCode, CodeType       ret_type   = NoCode, Code body = NoCode
-	, CodeSpecifier specifiers = NoCode, CodeAttributes attributes = NoCode
+	, CodeSpecifiers specifiers = NoCode, CodeAttributes attributes = NoCode
 	, ModuleFlag mflags     = ModuleFlag::None );
 
 CodeInclude   def_include  ( StrC content );
@@ -1403,13 +1429,13 @@ CodeNamespace def_namespace( StrC name, Code body, ModuleFlag mflags = ModuleFla
 
 CodeOperator def_operator( OperatorT op
 	, CodeParam      params     = NoCode, CodeType       ret_type   = NoCode, Code body = NoCode
-	, CodeSpecifier specifiers = NoCode, CodeAttributes attributes = NoCode
+	, CodeSpecifiers specifiers = NoCode, CodeAttributes attributes = NoCode
 	, ModuleFlag     mflags     = ModuleFlag::None );
 
-CodeOpCast def_operator_cast( CodeType type, Code body = NoCode );
+CodeOpCast def_operator_cast( CodeType type, Code body = NoCode, CodeSpecifiers specs = NoCode );
 
 CodeParam      def_param    ( CodeType type, StrC name, Code value = NoCode );
-CodeSpecifier def_specifier( SpecifierT specifier );
+CodeSpecifiers def_specifier( SpecifierT specifier );
 
 CodeStruct def_struct( StrC name
 	, Code           body       = NoCode
@@ -1419,7 +1445,7 @@ CodeStruct def_struct( StrC name
 
 CodeTemplate def_template( CodeParam params, Code definition, ModuleFlag mflags = ModuleFlag::None );
 
-CodeType    def_type   ( StrC name, Code arrayexpr = NoCode, CodeSpecifier specifiers = NoCode, CodeAttributes attributes = NoCode );
+CodeType    def_type   ( StrC name, Code arrayexpr = NoCode, CodeSpecifiers specifiers = NoCode, CodeAttributes attributes = NoCode );
 CodeTypedef def_typedef( StrC name, Code type, CodeAttributes attributes = NoCode, ModuleFlag mflags = ModuleFlag::None );
 
 CodeUnion def_union( StrC name, Code body, CodeAttributes attributes = NoCode, ModuleFlag mflags = ModuleFlag::None );
@@ -1431,7 +1457,7 @@ CodeUsing def_using( StrC name, CodeType type = NoCode
 CodeUsing def_using_namespace( StrC name );
 
 CodeVar def_variable( CodeType type, StrC name, Code value = NoCode
-	, CodeSpecifier specifiers = NoCode, CodeAttributes attributes = NoCode
+	, CodeSpecifiers specifiers = NoCode, CodeAttributes attributes = NoCode
 	, ModuleFlag     mflags     = ModuleFlag::None );
 
 // Constructs an empty body. Use AST::validate_body() to check if the body is was has valid entries.
@@ -1440,48 +1466,48 @@ CodeBody def_body( CodeT type );
 // There are two options for defining a struct body, either varadically provided with the args macro to auto-deduce the arg num,
 /// or provide as an array of Code objects.
 
-CodeBody      def_class_body      ( s32 num, ... );
-CodeBody      def_class_body      ( s32 num, Code* codes );
-CodeBody      def_enum_body       ( s32 num, ... );
-CodeBody      def_enum_body       ( s32 num, Code* codes );
-CodeBody      def_export_body     ( s32 num, ... );
-CodeBody      def_export_body     ( s32 num, Code* codes);
-CodeBody      def_extern_link_body( s32 num, ... );
-CodeBody      def_extern_link_body( s32 num, Code* codes );
-CodeBody      def_function_body   ( s32 num, ... );
-CodeBody      def_function_body   ( s32 num, Code* codes );
-CodeBody      def_global_body     ( s32 num, ... );
-CodeBody      def_global_body     ( s32 num, Code* codes );
-CodeBody      def_namespace_body  ( s32 num, ... );
-CodeBody      def_namespace_body  ( s32 num, Code* codes );
-CodeParam     def_params          ( s32 num, ... );
-CodeParam     def_params          ( s32 num, CodeParam* params );
-CodeSpecifier def_specifiers      ( s32 num, ... );
-CodeSpecifier def_specifiers      ( s32 num, SpecifierT* specs );
-CodeBody      def_struct_body     ( s32 num, ... );
-CodeBody      def_struct_body     ( s32 num, Code* codes );
-CodeBody      def_union_body      ( s32 num, ... );
-CodeBody      def_union_body      ( s32 num, Code* codes );
+CodeBody       def_class_body      ( s32 num, ... );
+CodeBody       def_class_body      ( s32 num, Code* codes );
+CodeBody       def_enum_body       ( s32 num, ... );
+CodeBody       def_enum_body       ( s32 num, Code* codes );
+CodeBody       def_export_body     ( s32 num, ... );
+CodeBody       def_export_body     ( s32 num, Code* codes);
+CodeBody       def_extern_link_body( s32 num, ... );
+CodeBody       def_extern_link_body( s32 num, Code* codes );
+CodeBody       def_function_body   ( s32 num, ... );
+CodeBody       def_function_body   ( s32 num, Code* codes );
+CodeBody       def_global_body     ( s32 num, ... );
+CodeBody       def_global_body     ( s32 num, Code* codes );
+CodeBody       def_namespace_body  ( s32 num, ... );
+CodeBody       def_namespace_body  ( s32 num, Code* codes );
+CodeParam      def_params          ( s32 num, ... );
+CodeParam      def_params          ( s32 num, CodeParam* params );
+CodeSpecifiers def_specifiers      ( s32 num, ... );
+CodeSpecifiers def_specifiers      ( s32 num, SpecifierT* specs );
+CodeBody       def_struct_body     ( s32 num, ... );
+CodeBody       def_struct_body     ( s32 num, Code* codes );
+CodeBody       def_union_body      ( s32 num, ... );
+CodeBody       def_union_body      ( s32 num, Code* codes );
 #pragma endregion Upfront
 
 #pragma region Parsing
-CodeClass      parse_class        ( StrC class_def     );
-CodeEnum       parse_enum         ( StrC enum_def      );
-CodeBody       parse_export_body  ( StrC export_def    );
-CodeExtern     parse_extern_link  ( StrC exten_link_def);
-CodeFriend     parse_friend       ( StrC friend_def    );
-CodeFn         parse_function     ( StrC fn_def        );
-CodeBody       parse_global_body  ( StrC body_def      );
-CodeNamespace  parse_namespace    ( StrC namespace_def );
-CodeOperator   parse_operator     ( StrC operator_def  );
-CodeOpCast     parse_operator_cast( StrC operator_def  );
-CodeStruct     parse_struct       ( StrC struct_def    );
-CodeTemplate   parse_template     ( StrC template_def  );
-CodeType       parse_type         ( StrC type_def      );
-CodeTypedef    parse_typedef      ( StrC typedef_def   );
-CodeUnion      parse_union        ( StrC union_def     );
-CodeUsing      parse_using        ( StrC using_def     );
-CodeVar        parse_variable     ( StrC var_def       );
+CodeClass     parse_class        ( StrC class_def     );
+CodeEnum      parse_enum         ( StrC enum_def      );
+CodeBody      parse_export_body  ( StrC export_def    );
+CodeExtern    parse_extern_link  ( StrC exten_link_def);
+CodeFriend    parse_friend       ( StrC friend_def    );
+CodeFn        parse_function     ( StrC fn_def        );
+CodeBody      parse_global_body  ( StrC body_def      );
+CodeNamespace parse_namespace    ( StrC namespace_def );
+CodeOperator  parse_operator     ( StrC operator_def  );
+CodeOpCast    parse_operator_cast( StrC operator_def  );
+CodeStruct    parse_struct       ( StrC struct_def    );
+CodeTemplate  parse_template     ( StrC template_def  );
+CodeType      parse_type         ( StrC type_def      );
+CodeTypedef   parse_typedef      ( StrC typedef_def   );
+CodeUnion     parse_union        ( StrC union_def     );
+CodeUsing     parse_using        ( StrC using_def     );
+CodeVar       parse_variable     ( StrC var_def       );
 #pragma endregion Parsing
 
 #pragma region Untyped text
@@ -1680,7 +1706,7 @@ Define_CodeImpl( CodeNamespace );
 Define_CodeImpl( CodeOperator );
 Define_CodeImpl( CodeOpCast );
 Define_CodeImpl( CodeParam );
-Define_CodeImpl( CodeSpecifier );
+Define_CodeImpl( CodeSpecifiers );
 Define_CodeImpl( CodeStruct );
 Define_CodeImpl( CodeTemplate );
 Define_CodeImpl( CodeType );
@@ -1711,7 +1737,7 @@ Define_AST_Cast( Namespace );
 Define_AST_Cast( Operator );
 Define_AST_Cast( OpCast );
 Define_AST_Cast( Param );
-Define_AST_Cast( Specifier );
+Define_AST_Cast( Specifiers );
 Define_AST_Cast( Struct );
 Define_AST_Cast( Template );
 Define_AST_Cast( Type );
@@ -1741,7 +1767,7 @@ Define_CodeCast( Namespace );
 Define_CodeCast( Operator );
 Define_CodeCast( OpCast );
 Define_CodeCast( Param );
-Define_CodeCast( Specifier );
+Define_CodeCast( Specifiers );
 Define_CodeCast( Struct );
 Define_CodeCast( Template );
 Define_CodeCast( Type );
@@ -1846,13 +1872,8 @@ StrC token_fmt_impl( sw num, ... )
 }
 #pragma endregion Inlines
 
-// namespace gen
-}
-
 #pragma region Constants
 #ifdef GEN_DEFINE_LIBRARY_CODE_CONSTANTS
-namespace gen
-{
 	// Predefined typename codes. Are set to readonly and are setup during gen::init()
 
 	extern CodeType t_b32;
@@ -1872,31 +1893,54 @@ namespace gen
 
 	extern CodeType t_f32;
 	extern CodeType t_f64;
-}
 #endif
 
-namespace gen
-{
+#ifndef GEN_GLOBAL_BUCKET_SIZE
+#	define GEN_GLOBAL_BUCKET_SIZE megabytes(10)
+#endif
+#ifndef GEN_CODEPOOL_NUM_BLOCKS
+#	define GEN_CODEPOOL_NUM_BLOCKS kilobytes(64)
+#endif
+#ifndef GEN_SIZE_PER_STRING_ARENA
+#	define GEN_SIZE_PER_STRING_ARENA megabytes(1)
+#endif
+#ifndef GEN_MAX_COMMENT_LINE_LENGTH
+#	define GEN_MAX_COMMENT_LINE_LENGTH 1024
+#endif
+#ifndef GEN_MAX_NAME_LENGTH
+#	define GEN_MAX_NAME_LENGTH 128
+#endif
+#ifndef GEN_MAX_UNTYPED_STR_LENGTH
+#	define GEN_MAX_UNTYPED_STR_LENGTH kilobytes(640)
+#endif
+#ifndef GEN_TOKEN_FMT_TOKEN_MAP_MEM_SIZE
+#	define GEN_TOKEN_FMT_TOKEN_MAP_MEM_SIZE kilobytes(4)
+#endif
+#ifndef GEN_LEX_ALLOCATOR_SIZE
+#	define GEN_LEX_ALLOCATOR_SIZE megabytes(10)
+#endif
+#ifndef GEN_BUILDER_STR_BUFFER_RESERVE
+#	define GEN_BUILDER_STR_BUFFER_RESERVE megabytes(1)
+#endif
+
 	// These constexprs are used for allocation behavior of data structures
 	// or string handling while constructing or serializing.
 	// Change them to suit your needs.
 
-	constexpr s32 InitSize_DataArrays  = 16;
-	constexpr s32 InitSize_StringTable = megabytes(4);
+	constexpr s32 InitSize_DataArrays = 16;
 
 	// NOTE: This limits the maximum size of an allocation
 	// If you are generating a string larger than this, increase the size of the bucket here.
-	constexpr uw Global_BucketSize          = megabytes(10);
-	constexpr s32 CodePool_NumBlocks        = kilobytes(4);
-	constexpr s32 SizePer_StringArena       = megabytes(1);
+	constexpr uw  Global_BucketSize         = GEN_GLOBAL_BUCKET_SIZE;
+	constexpr s32 CodePool_NumBlocks        = GEN_CODEPOOL_NUM_BLOCKS;
+	constexpr s32 SizePer_StringArena       = GEN_SIZE_PER_STRING_ARENA;
 
-	constexpr s32 MaxCommentLineLength      = 1024;
-	constexpr s32 MaxNameLength             = 128;
-	constexpr s32 MaxUntypedStrLength       = kilobytes(640);
-	constexpr s32 StringTable_MaxHashLength = kilobytes(1);
-	constexpr s32 TokenFmt_TokenMap_MemSize	= kilobytes(4);
-	constexpr s32 LexAllocator_Size         = megabytes(10);
-	constexpr s32 Builder_StrBufferReserve  = megabytes(1);
+	constexpr s32 MaxCommentLineLength      = GEN_MAX_COMMENT_LINE_LENGTH;
+	constexpr s32 MaxNameLength             = GEN_MAX_NAME_LENGTH;
+	constexpr s32 MaxUntypedStrLength       = GEN_MAX_UNTYPED_STR_LENGTH;
+	constexpr s32 TokenFmt_TokenMap_MemSize	= GEN_TOKEN_FMT_TOKEN_MAP_MEM_SIZE;
+	constexpr s32 LexAllocator_Size         = GEN_LEX_ALLOCATOR_SIZE;
+	constexpr s32 Builder_StrBufferReserve  = GEN_BUILDER_STR_BUFFER_RESERVE;
 
 	extern CodeType t_auto;
 	extern CodeType t_void;
@@ -1907,6 +1951,9 @@ namespace gen
 	extern CodeType t_class;
 	extern CodeType t_typename;
 
+	extern Code attrib_api_export;
+	extern Code attrib_api_import;
+
 	extern Code access_public;
 	extern Code access_protected;
 	extern Code access_private;
@@ -1916,24 +1963,23 @@ namespace gen
 
 	extern Code pragma_once;
 
-	extern CodeSpecifier spec_const;
-	extern CodeSpecifier spec_consteval;
-	extern CodeSpecifier spec_constexpr;
-	extern CodeSpecifier spec_constinit;
-	extern CodeSpecifier spec_extern_linkage;
-	extern CodeSpecifier spec_global;
-	extern CodeSpecifier spec_inline;
-	extern CodeSpecifier spec_internal_linkage;
-	extern CodeSpecifier spec_local_persist;
-	extern CodeSpecifier spec_mutable;
-	extern CodeSpecifier spec_ptr;
-	extern CodeSpecifier spec_ref;
-	extern CodeSpecifier spec_register;
-	extern CodeSpecifier spec_rvalue;
-	extern CodeSpecifier spec_static_member;
-	extern CodeSpecifier spec_thread_local;
-	extern CodeSpecifier spec_volatile;
-}
+	extern CodeSpecifiers spec_const;
+	extern CodeSpecifiers spec_consteval;
+	extern CodeSpecifiers spec_constexpr;
+	extern CodeSpecifiers spec_constinit;
+	extern CodeSpecifiers spec_extern_linkage;
+	extern CodeSpecifiers spec_global;
+	extern CodeSpecifiers spec_inline;
+	extern CodeSpecifiers spec_internal_linkage;
+	extern CodeSpecifiers spec_local_persist;
+	extern CodeSpecifiers spec_mutable;
+	extern CodeSpecifiers spec_ptr;
+	extern CodeSpecifiers spec_ref;
+	extern CodeSpecifiers spec_register;
+	extern CodeSpecifiers spec_rvalue;
+	extern CodeSpecifiers spec_static_member;
+	extern CodeSpecifiers spec_thread_local;
+	extern CodeSpecifiers spec_volatile;
 #pragma endregion Constants
 
 #pragma region Macros
@@ -1958,8 +2004,6 @@ namespace gen
 #pragma endregion Macros
 
 #ifdef GEN_EXPOSE_BACKEND
-namespace gen
-{
 	// Global allocator used for data with process lifetime.
 	extern AllocatorInfo  GlobalAllocator;
 	extern Array< Arena > Global_AllocatorBuckets;
@@ -1976,7 +2020,8 @@ namespace gen
 	extern AllocatorInfo Allocator_StringArena;
 	extern AllocatorInfo Allocator_StringTable;
 	extern AllocatorInfo Allocator_TypeTable;
-}
 #endif
+
+GEN_NS_END
 
 #include "gen.pop_ignores.inline.hpp"

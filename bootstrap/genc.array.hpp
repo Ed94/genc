@@ -33,11 +33,13 @@ CodeBody gen_array( StrC type, StrC array_name )
 	, stringize(
 		typedef <type>* <array_type>;
 
-		<array_type> <array_fn>_make( gen_AllocatorInfo allocator );
+		<array_type> <array_fn>_make        ( gen_AllocatorInfo allocator );
 		<array_type> <array_fn>_make_reserve( gen_AllocatorInfo allocator, gen_uw capacity );
-		bool <array_fn>_append( <array_type> self, <type> value );
+		bool <array_fn>_append      ( <array_type> self, <type> value );
 		bool <array_fn>_append_items( <array_type> self, <type>* items, gen_uw item_num );
-		bool <array_fn>_grow( <array_type>* self, gen_uw min_capacity );
+		bool <array_fn>_append_at   ( <array_type> self, Type item, sw idx );
+		bool <array_fn>_append_at   ( <array_type> self, <type>* items, gen_uw item_num )
+		bool <array_fn>_grow        ( <array_type>* self, gen_uw min_capacity );
 		bool <array_fn>_set_capacity( <array_type>* self, gen_uw new_capacity );
 
 		<array_type> <array_fn>_make( gen_AllocatorInfo allocator )
@@ -67,6 +69,8 @@ CodeBody gen_array( StrC type, StrC array_name )
 			{
 				if ( ! <array_fn>_grow( & self, header->Capacity))
 					return false;
+
+				header = gen_array_header( self );
 			}
 
 			self[ header->Num ] = value;
@@ -81,12 +85,45 @@ CodeBody gen_array( StrC type, StrC array_name )
 			{
 				if ( ! <array_fn>_grow( & self, header->Capacity + item_num ))
 					return false;
+
+				header = gen_array_header( self );
 			}
 
 			gen_mem_copy( self + header->Num, items, sizeof(<type>) * item_num );
 			header->Num += item_num;
 
 			return true;
+		}
+
+		bool <array_fn>_append_at( <array_type> self, <type>* item, gen_uw idx )
+		{
+			ArrayHeader* header = gen_array_header( self );
+
+			if ( idx >= header->Num )
+				idx = header->Num - 1;
+
+			if ( idx < 0 )
+				idx = 0;
+
+			if ( header->Capacity < header->Num + 1 )
+			{
+				if ( ! <array_fn>_grow( & self, header->Capacity + 1 ) )
+					return false;
+
+				header = gen_array_header( self );
+			}
+
+			<array_type>* target = self + idx;
+
+			gen_mem_move( target + 1, target, (header->Num - idx) * sizeof(<array_type>) );
+			header->Num++;
+
+			return true;
+		}
+
+		bool <array_fn>_append_at( <array_type> self, <type>* items, gen_uw item_num )
+		{
+
 		}
 
 		bool <array_fn>_grow( <array_type>* self, gen_uw min_capacity )

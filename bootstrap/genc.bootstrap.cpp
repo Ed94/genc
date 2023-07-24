@@ -150,7 +150,7 @@ int main()
 		Code filesystem   = scan_file( "./components/genc.filesystem.h" );
 
 		CodeBody array_base_impl = gen_array_base();
-		CodeBody array_char_ptr = gen_array( txt_StrC("char*"), txt_StrC("gen_Array_CStr") );
+		CodeBody array_cstr = gen_array( txt_StrC("char*"), txt_StrC("gen_Array_CStr") );
 
 		genc_dep_header.open("genc.dep.h");
 			genc_dep_header.print_fmt("#pragma once\n\n");
@@ -166,7 +166,7 @@ int main()
 				// Containers
 				genc_dep_header.print_fmt("#pragma region Containers\n");
 				genc_dep_header.print( array_base_impl );
-				genc_dep_header.print( array_char_ptr );
+				genc_dep_header.print( array_cstr );
 				genc_dep_header.print_fmt("#pragma endregion Containers\n\n");
 			}
 			genc_dep_header.print( filesystem );
