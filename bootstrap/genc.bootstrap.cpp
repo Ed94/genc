@@ -1,10 +1,9 @@
 #define GEN_DEFINE_LIBRARY_CODE_CONSTANTS
 #define GEN_ENFORCE_STRONG_CODE_TYPES
 #define GEN_EXPOSE_BACKEND
-#include "gencpp/gen.cpp"
-#include "gencpp/gen.push_ignores.inline.hpp"
+#define GEN_IMPLEMENTATION
+#include "gen.hpp"
 #include "genc.array.hpp"
-
 
 using namespace gen;
 
@@ -134,7 +133,7 @@ int main()
 	gen::init();
 
 	Builder
-	genc_dep_header;
+	dep_header;
 	{
 		// Dependencies
 		Code header_start = scan_file( "./components/genc.header_start.h");
@@ -152,26 +151,27 @@ int main()
 		CodeBody array_base_impl = gen_array_base();
 		CodeBody array_cstr = gen_array( txt_StrC("char*"), txt_StrC("gen_Array_CStr") );
 
-		genc_dep_header.open("genc.dep.h");
-			genc_dep_header.print_fmt("#pragma once\n\n");
-			genc_dep_header.print( header_start );
-			genc_dep_header.print( macros );
-			genc_dep_header.print( basic_types );
-			genc_dep_header.print( debug );
-			genc_dep_header.print( memory );
-			genc_dep_header.print( string_ops );
-			genc_dep_header.print( printing );
-			genc_dep_header.print( strings );
+		dep_header.open("genc.dep.h");
+			dep_header.print_fmt("#pragma once\n\n");
+			dep_header.print( header_start );
+			dep_header.print( macros );
+			dep_header.print( basic_types );
+			dep_header.print( debug );
+			dep_header.print( memory );
+			dep_header.print( string_ops );
+			dep_header.print( printing );
+			dep_header.print( strings );
 			{
 				// Containers
-				genc_dep_header.print_fmt("#pragma region Containers\n");
-				genc_dep_header.print( array_base_impl );
-				genc_dep_header.print( array_cstr );
-				genc_dep_header.print_fmt("#pragma endregion Containers\n\n");
+				dep_header.print_fmt("#pragma region Containers\n");
+				dep_header.print( array_base_impl );
+				dep_header.print( array_cstr );
+				dep_header.print_fmt("#pragma endregion Containers\n\n");
 			}
-			genc_dep_header.print( filesystem );
-			genc_dep_header.print( csv );
-		genc_dep_header.write();
+			dep_header.print( filesystem );
+			dep_header.print( adt );
+			dep_header.print( csv );
+		dep_header.write();
 	}
 
 	constexpr
