@@ -29,18 +29,26 @@ CodeBody gen_array( StrC type, StrC array_name )
 	String array_fn = String::make( GlobalAllocator, array_name );
 	str_to_lower(array_fn.Data);
 
+#pragma push_macro( "GEN_ASSERT" )
+#undef GEN_ASSERT
 	CodeBody result = parse_global_body( token_fmt( "array_type", (StrC)array_name, "array_fn", (StrC)array_fn, "type", (StrC)type
 	, stringize(
 		typedef <type>* <array_type>;
 
 		<array_type> <array_fn>_make        ( gen_AllocatorInfo allocator );
 		<array_type> <array_fn>_make_reserve( gen_AllocatorInfo allocator, gen_uw capacity );
-		bool <array_fn>_append      ( <array_type> self, <type> value );
-		bool <array_fn>_append_items( <array_type> self, <type>* items, gen_uw item_num );
-		bool <array_fn>_append_at   ( <array_type> self, Type item, sw idx );
-		bool <array_fn>_append_at   ( <array_type> self, <type>* items, gen_uw item_num )
-		bool <array_fn>_grow        ( <array_type>* self, gen_uw min_capacity );
-		bool <array_fn>_set_capacity( <array_type>* self, gen_uw new_capacity );
+		bool         <array_fn>_append      ( <array_type>  self, <type> value );
+		bool         <array_fn>_append_items( <array_type>  self, <type>* items, gen_uw item_num );
+		bool         <array_fn>_append_at   ( <array_type>  self, <type> item, gen_uw idx );
+		bool         <array_fn>_append_at   ( <array_type>  self, <type>* items, gen_uw item_num, gen_uw idx );
+		<type>*      <array_fn>_back        ( <array_type>  self );
+		void         <array_fn>_clear       ( <array_type>  self );
+		bool         <array_fn>_fill		( <array_type>  self, gen_uw begin, gen_uw end, <type> value );
+		void         <array_fn>_free        ( <array_type>  self );
+		bool         <array_fn>_grow        ( <array_type>* self, gen_uw min_capacity );
+		<type>       <array_fn>_pop 	    ( <array_type>  self );
+		bool         <array_fn>_reserve     ( <array_type>* self, gen_uw new_capacity );
+		bool         <array_fn>_set_capacity( <array_type>* self, gen_uw new_capacity );
 
 		<array_type> <array_fn>_make( gen_AllocatorInfo allocator )
 		{
@@ -113,7 +121,7 @@ CodeBody gen_array( StrC type, StrC array_name )
 				header = gen_array_header( self );
 			}
 
-			<array_type>* target = self + idx;
+			<array_type> target = self + idx;
 
 			gen_mem_move( target + 1, target, (header->Num - idx) * sizeof(<array_type>) );
 			header->Num++;
@@ -121,9 +129,67 @@ CodeBody gen_array( StrC type, StrC array_name )
 			return true;
 		}
 
-		bool <array_fn>_append_at( <array_type> self, <type>* items, gen_uw item_num )
+		bool <array_fn>_append_items_at( <array_type> self, <type>* items, gen_uw item_num, gen_uw idx )
 		{
+			ArrayHeader* header = gen_array_header( self );
 
+			if ( idx >= header->Num )
+			{
+				return <array_fn>_append_items( self, items, item_num );
+			}
+
+			if ( item_num > header->Capacity )
+			{
+				if ( ! <array_fn>_grow( & self, item_num + header->Capacity ) )
+					return false;
+
+				header = gen_array_header( self );
+			}
+
+			<type>* target = self + idx + item_num;
+			<type>* src    = self + idx;
+
+			gen_mem_move( target, src, (header->Num - idx) * sizeof(<type>) );
+			gen_mem_copy( src, items, item_num * sizeof(<type>) );
+			header->Num += item_num;
+
+			return true;
+		}
+
+		<type>* <array_fn>_back( <array_type> self )
+		{
+			ArrayHeader* header = gen_array_header( self );
+
+			if ( header->Num == 0 )
+				return NULL;
+
+			return self + header->Num - 1;
+		}
+
+		void <array_fn>_clear( <array_type> self )
+		{
+			ArrayHeader* header = gen_array_header( self );
+			header->Num = 0;
+		}
+
+		bool <array_fn>_fill( <array_type> self, gen_uw begin, gen_uw end, <type> value )
+		{
+			ArrayHeader* header = gen_array_header( self );
+
+			if ( begin < 0 || end >= header->Num )
+				return false;
+
+			for ( gen_sw idx = begin; idx < end; idx ++ )
+				self[ idx ] = value;
+
+			return true;
+		}
+
+		void <array_fn>_free( <array_type> self )
+		{
+			ArrayHeader* header = gen_array_header( self );
+			gen_free( header->Allocator, header );
+			self = NULL;
 		}
 
 		bool <array_fn>_grow( <array_type>* self, gen_uw min_capacity )
@@ -135,6 +201,26 @@ CodeBody gen_array( StrC type, StrC array_name )
 				new_capacity = min_capacity;
 
 			return <array_fn>_set_capacity( self, new_capacity );
+		}
+
+		<type> <array_fn>_pop( <array_type> self )
+		{
+			ArrayHeader* header = gen_array_header( self );
+			GEN_ASSERT( header->Num > 0 );
+
+			<type> result = self[ header->Num - 1 ];
+			header->Num--;
+			return result;
+		}
+
+		bool <array_fn>_reserve( <array_type>* self, gen_uw new_capacity )
+		{
+			ArrayHeader* header = gen_array_header( self );
+
+			if ( header->Capacity < new_capacity )
+				return <array_fn>_set_capacity( & self, new_capacity );
+
+			return true;
 		}
 
 		bool <array_fn>_set_capacity( <array_type>* self, gen_uw new_capacity )
@@ -161,6 +247,7 @@ CodeBody gen_array( StrC type, StrC array_name )
 			return true;
 		}
 	)));
+#pragma pop_macro( "GEN_ASSERT" )
 
 	return result;
 };

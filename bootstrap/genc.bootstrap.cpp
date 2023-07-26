@@ -132,46 +132,69 @@ int main()
 	using namespace gen;
 	gen::init();
 
-	Builder
-	dep_header;
+	Code push_ignores = scan_file( "helpers/gen.push_ignores.inline.hpp" );
+	Code pop_ignores  = scan_file( "helpers/gen.pop_ignores.inline.hpp" );
+
+	// genc_dep.h
 	{
-		// Dependencies
-		Code header_start = scan_file( "./components/genc.header_start.h");
-		Code macros       = scan_file( "./components/genc.macros.h" );
-		Code basic_types  = scan_file( "./components/genc.basic_types.h");
-		Code debug        = scan_file( "./components/genc.debug.h" );
-		Code memory       = scan_file( "./components/genc.memory.h" );
-		Code string_ops   = scan_file( "./components/genc.string_ops.h" );
-		Code printing     = scan_file( "./components/genc.printing.h" );
-		Code strings      = scan_file( "./components/genc.strings.h" );
-		Code adt          = scan_file( "./components/genc.adt.h" );
-		Code csv          = scan_file( "./components/genc.csv.h" );
-		Code filesystem   = scan_file( "./components/genc.filesystem.h" );
+		Code header_start = scan_file( "./dependencies/genc.header_start.h");
+		Code macros       = scan_file( "./dependencies/genc.macros.h" );
+		Code basic_types  = scan_file( "./dependencies/genc.basic_types.h");
+		Code debug        = scan_file( "./dependencies/genc.debug.h" );
+		Code memory       = scan_file( "./dependencies/genc.memory.h" );
+		Code string_ops   = scan_file( "./dependencies/genc.string_ops.h" );
+		Code printing     = scan_file( "./dependencies/genc.printing.h" );
+		Code strings      = scan_file( "./dependencies/genc.strings.h" );
+		Code timing       = scan_file( "./dependencies/genc.timing.h" );
+
+		Code filesystem   = scan_file( "./dependencies/genc.filesystem.h" );
+		Code adt          = scan_file( "./dependencies/genc.adt.h" );
+		Code csv          = scan_file( "./dependencies/genc.csv.h" );
 
 		CodeBody array_base_impl = gen_array_base();
 		CodeBody array_cstr = gen_array( txt_StrC("char*"), txt_StrC("gen_Array_CStr") );
 
-		dep_header.open("genc.dep.h");
-			dep_header.print_fmt("#pragma once\n\n");
-			dep_header.print( header_start );
-			dep_header.print( macros );
-			dep_header.print( basic_types );
-			dep_header.print( debug );
-			dep_header.print( memory );
-			dep_header.print( string_ops );
-			dep_header.print( printing );
-			dep_header.print( strings );
+		// CodeBody hashtable_base_impl   = gen_hashtable_base();
+		// CodeBody hashtable_stringcache = gen_hashtable( txt_StrC("gen_StringCache"), txt_StrC("gen_HashTable_StringCache") );
+
+		Builder
+		deps_header;
+		deps_header.open("genc.dep.h");
+			deps_header.print_fmt("// This file is intended to be included within genc.h (There is no pragma diagnostic ignores)\n\n");
+			deps_header.print( header_start );
+			deps_header.print( macros );
+			deps_header.print( basic_types );
+			deps_header.print( debug );
+			deps_header.print( memory );
+			deps_header.print( string_ops );
+			deps_header.print( printing );
+			deps_header.print( strings );
+			deps_header.print( timing );
 			{
 				// Containers
-				dep_header.print_fmt("#pragma region Containers\n");
-				dep_header.print( array_base_impl );
-				dep_header.print( array_cstr );
-				dep_header.print_fmt("#pragma endregion Containers\n\n");
+				deps_header.print_fmt("#pragma region Containers\n");
+				deps_header.print( array_base_impl );
+				deps_header.print( array_cstr );
+				// dep_header.print( hashtable_base_impl );
+				// dep_header.print( hashtable_stringcache );
+				deps_header.print_fmt("#pragma endregion Containers\n\n");
 			}
-			dep_header.print( filesystem );
-			dep_header.print( adt );
-			dep_header.print( csv );
-		dep_header.write();
+			deps_header.print( filesystem );
+			deps_header.print( adt );
+			deps_header.print( csv );
+		deps_header.write();
+	}
+
+	// genc_dep.c
+	{
+		Code impl_start = scan_file( "./dependencies/genc.impl_start.c");
+		Code debug 	    = scan_file( "./dependencies/genc.debug.c" );
+		Code string_ops = scan_file( "./dependencies/genc.string_ops.c" );
+
+		Builder
+		deps_impl;
+		deps_impl.open( "genc.dep.c" );
+			deps_impl.print_fmt("// This file is intended to be included within genc.c (There is no pragma diagnostic ignores)\n\n");
 	}
 
 	constexpr
@@ -226,11 +249,8 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 	Builder
 	genc_source;
 	{
-		Code csv = scan_file( "./components/genc.csv.h" );
-
 		genc_source.open("genc.c");
 		genc_header.print_fmt( gen_time_guard );
-			genc_source.print( csv );
 		genc_source.write();
 	}
 
