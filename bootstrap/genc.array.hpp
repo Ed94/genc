@@ -3,7 +3,7 @@
 #define GEN_DEFINE_LIBRARY_CODE_CONSTANTS
 #define GEN_ENFORCE_STRONG_CODE_TYPES
 #define GEN_EXPOSE_BACKEND
-#include "gen.hpp"
+#include "gen/gen.hpp"
 
 using namespace gen;
 
@@ -48,6 +48,7 @@ CodeBody gen_array( StrC type, StrC array_name )
 		bool         <array_fn>_grow        ( <array_type>* self, gen_uw min_capacity );
 		<type>       <array_fn>_pop 	    ( <array_type>  self );
 		bool         <array_fn>_reserve     ( <array_type>* self, gen_uw new_capacity );
+		bool         <array_fn>_resize      ( <array_type>* self, gen_uew num );
 		bool         <array_fn>_set_capacity( <array_type>* self, gen_uw new_capacity );
 
 		<array_type> <array_fn>_make( gen_AllocatorInfo allocator )
@@ -57,7 +58,7 @@ CodeBody gen_array( StrC type, StrC array_name )
 
 		<array_type> <array_fn>_make_reserve( gen_AllocatorInfo allocator, gen_uw capacity )
 		{
-			ArrayHeader* header = (ArrayHeader*) gen_alloc( allocator, sizeof(ArrayHeader) + sizeof(<type>) * capacity );
+			ArrayHeader* header = cast(ArrayHeader*, gen_alloc( allocator, sizeof(ArrayHeader) + sizeof(<type>) * capacity ) );
 
 			if ( header == NULL )
 				return NULL;
@@ -83,6 +84,8 @@ CodeBody gen_array( StrC type, StrC array_name )
 
 			self[ header->Num ] = value;
 			header->Num++;
+
+			return true;
 		}
 
 		bool <array_fn>_append_items( <array_type> self, <type>* items, gen_uw item_num )
@@ -213,13 +216,38 @@ CodeBody gen_array( StrC type, StrC array_name )
 			return result;
 		}
 
+		void <array_fn>_remove_at( <array_type> self, uw idx )
+		{
+			ArrayHeader* header = gen_array_header( self );
+			GEN_ASSERT( idx < header->Num );
+
+			gen_mem_move( self + idx, self + idx + 1, sizeof( Type ) * ( header->Num - idx - 1 ) );
+			header->Num--;
+		}
+
 		bool <array_fn>_reserve( <array_type>* self, gen_uw new_capacity )
 		{
 			ArrayHeader* header = gen_array_header( self );
 
 			if ( header->Capacity < new_capacity )
-				return <array_fn>_set_capacity( & self, new_capacity );
+				return <array_fn>_set_capacity( self, new_capacity );
 
+			return true;
+		}
+
+		bool <array_fn>_resize( <array_type>* self, gen_uw num )
+		{
+			ArrayHeader* header = gen_array_header( self );
+
+			if ( header->Capacity < num )
+			{
+				if ( ! <array_fn>_grow( self, num ) )
+					return false;
+
+				header = gen_array_header( self );
+			}
+
+			header->Num = num;
 			return true;
 		}
 

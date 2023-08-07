@@ -27,7 +27,7 @@ $edition = "Professional"
 
 $vcvarsall_2022 = "C:\Program Files\Microsoft Visual Studio\2022\"       + $edition + "\VC\Auxiliary\Build\vcvarsall.bat"
 $vcvarsall_2019 = "C:\Program Files (x86)\Microsoft Visual Studio\2019\" + $edition + "\VC\Auxiliary\Build\vcvarsall.bat"
-$vcvarsall_2017 = "C:\Program Files (x86)\Microsoft Visual Studio\2017\" + $edit
+$vcvarsall_2017 = "C:\Program Files (x86)\Microsoft Visual Studio\2017\" + $edition + "\VC\Auxiliary\Build\vcvarsall.bat"
 $vcvarsalls     = @($vcvarsall_2022, $vcvarsall_2019, $vcvarsall_2017)
 
 write-host "`n`nBuilding genc via msvc`n"

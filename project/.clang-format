@@ -3,17 +3,26 @@
 AccessModifierOffset: -4
 
 AlignAfterOpenBracket: BlockIndent
-AlignArrayOfStructures: Right
+AlignArrayOfStructures: Left
 AlignConsecutiveAssignments:
   Enabled: true
-  AcrossEmptyLines: false
-  AcrossComments: true
+  AcrossEmptyLines: true
+  AcrossComments: false
   AlignCompound: true
   PadOperators: true
-AlignConsecutiveBitFields: AcrossComments
-AlignConsecutiveDeclarations: AcrossComments
-AlignConsecutiveMacros: AcrossComments
-AlignEscapedNewlines: Right
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignEscapedNewlines: Left
 AlignOperands: DontAlign
 
 AlignTrailingComments: true
@@ -38,7 +47,7 @@ BinPackParameters: false
 
 BitFieldColonSpacing: Both
 
-BraceWrapping: 
+BraceWrapping:
   AfterCaseLabel: false
   AfterClass: false
   AfterControlStatement: false
@@ -58,8 +67,8 @@ BraceWrapping:
   BeforeLambdaBody: false
   BeforeWhile: false
 
-# BreakAfterAttributes: Always
-# BreakArrays: false
+BreakAfterAttributes: Always
+BreakArrays: true
 # BreakBeforeInlineASMColon: OnlyMultiline
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: Allman
@@ -70,14 +79,14 @@ BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeComma
 BreakStringLiterals: true
 
-ColumnLimit: 180
+ColumnLimit: 160
 
 CompactNamespaces: true
 
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth : 4
 
-ContinuationIndentWidth: 4
+ContinuationIndentWidth: 0
 
 Cpp11BracedListStyle: false
 
@@ -89,18 +98,17 @@ FixNamespaceComments: true
 
 IncludeBlocks: Preserve
 
-
-IndentCaseBlocks: true
+IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentExternBlock: AfterExternBlock
 IndentGotoLabels: true
-IndentPPDirectives: AfterHash
+IndentPPDirectives: None
 IndentRequires: true
 IndentWidth: 4
-IndentWrappedFunctionNames: false
+IndentWrappedFunctionNames: true
 
 # InsertNewlineAtEOF: true
-InsertTrailingCommas: Wrapped
+# InsertTrailingCommas: Wrapped
 
 LambdaBodyIndentation: OuterScope
 
@@ -124,8 +132,8 @@ SeparateDefinitionBlocks: Always
 
 ShortNamespaceLines: 40
 
-SortIncludes: true
-SortUsingDeclarations: true
+SortIncludes: false
+SortUsingDeclarations: false
 
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: true

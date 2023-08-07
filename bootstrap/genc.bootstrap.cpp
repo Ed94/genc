@@ -2,35 +2,10 @@
 #define GEN_ENFORCE_STRONG_CODE_TYPES
 #define GEN_EXPOSE_BACKEND
 #define GEN_IMPLEMENTATION
-#include "gen.hpp"
+#include "gen/gen.hpp"
 #include "genc.array.hpp"
 
 using namespace gen;
-
-Code scan_file( char const* path )
-{
-	FileInfo file;
-
-	FileError error = file_open_mode( & file, EFileMode_READ, path );
-	if ( error != EFileError_NONE )
-	{
-		fatal( "scan_file: Could not open genc.macro.h: %s", path );
-	}
-
-	sw fsize = file_size( & file );
-	if ( fsize <= 0 )
-	{
-		fatal("scan_file: %s is empty", path );
-	}
-
-	String str = String::make_reserve( GlobalAllocator, fsize );
-		file_read( & file, str, fsize );
-		str.get_header().Length = fsize;
-
-	file_close( & file );
-
-	return untyped_str( str );
-}
 
 CodeBody gen_ecode()
 {
@@ -144,6 +119,7 @@ int main()
 		Code memory       = scan_file( "./dependencies/genc.memory.h" );
 		Code string_ops   = scan_file( "./dependencies/genc.string_ops.h" );
 		Code printing     = scan_file( "./dependencies/genc.printing.h" );
+		Code hashing 	  = scan_file( "./dependencies/genc.hashing.h" );
 		Code strings      = scan_file( "./dependencies/genc.strings.h" );
 		Code timing       = scan_file( "./dependencies/genc.timing.h" );
 
@@ -158,9 +134,8 @@ int main()
 		// CodeBody hashtable_stringcache = gen_hashtable( txt_StrC("gen_StringCache"), txt_StrC("gen_HashTable_StringCache") );
 
 		Builder
-		deps_header;
-		deps_header.open("genc.dep.h");
-			deps_header.print_fmt("// This file is intended to be included within genc.h (There is no pragma diagnostic ignores)\n\n");
+		deps_header = Builder::open("genc.dep.h");
+		deps_header.print_fmt("// This file is intended to be included within genc.h (There is no pragma diagnostic ignores)\n\n");
 			deps_header.print( header_start );
 			deps_header.print( macros );
 			deps_header.print( basic_types );
@@ -174,6 +149,7 @@ int main()
 				// Containers
 				deps_header.print_fmt("#pragma region Containers\n");
 				deps_header.print( array_base_impl );
+				deps_header.print( fmt_newline );
 				deps_header.print( array_cstr );
 				// dep_header.print( hashtable_base_impl );
 				// dep_header.print( hashtable_stringcache );
@@ -190,11 +166,12 @@ int main()
 		Code impl_start = scan_file( "./dependencies/genc.impl_start.c");
 		Code debug 	    = scan_file( "./dependencies/genc.debug.c" );
 		Code string_ops = scan_file( "./dependencies/genc.string_ops.c" );
+		Code hashing    = scan_file( "./dependencies/genc.hashing.c" );
+		Code timing     = scan_file( "./dependencies/genc.timing.c" );
 
 		Builder
-		deps_impl;
-		deps_impl.open( "genc.dep.c" );
-			deps_impl.print_fmt("// This file is intended to be included within genc.c (There is no pragma diagnostic ignores)\n\n");
+		deps_impl = Builder::open( "genc.dep.c" );
+		deps_impl.print_fmt("// This file is intended to be included within genc.c (There is no pragma diagnostic ignores)\n\n");
 	}
 
 	constexpr
@@ -217,8 +194,7 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 
 )";
 
-	Builder
-	genc_header;
+	// genc.h
 	{
 		// Library
 		Code attributes = scan_file("./components/genc.attributes.h");
@@ -228,11 +204,13 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 
 		Code data_structures = scan_file("./components/genc.data_structures.h");
 		Code gen_interface   = scan_file("./components/genc.interface.h");
+
 		Code gen_builder     = scan_file("./components/genc.builder.h");
 
-		genc_header.open("genc.h");
-			genc_header.print_fmt( gen_time_guard );
-			genc_header.print_fmt( gen_dep_wrap );
+		Builder
+		genc_header = Builder::open("genc.h");
+		genc_header.print_fmt( gen_time_guard );
+		genc_header.print_fmt( gen_dep_wrap );
 
 			genc_header.print_fmt("#pragma region Types\n");
 			genc_header.print( ecode );
@@ -243,14 +221,15 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 			genc_header.print( data_structures );
 			genc_header.print( gen_interface );
 			genc_header.print( gen_builder );
+
 		genc_header.write();
 	}
 
-	Builder
-	genc_source;
+	// genc.c
 	{
-		genc_source.open("genc.c");
-		genc_header.print_fmt( gen_time_guard );
+		Builder
+		genc_source = Builder::open("genc.c");
+			genc_source.print_fmt( gen_time_guard );
 		genc_source.write();
 	}
 
