@@ -1,4 +1,5 @@
 #pragma region Debug
+
 #if defined( _MSC_VER )
 #	if _MSC_VER < 1300
 #		define GEN_DEBUG_TRAP() __asm int 3 /* Trap to debugger! */
@@ -6,7 +7,7 @@
 #		define GEN_DEBUG_TRAP() __debugbreak()
 #	endif
 #elif defined( GEN_COMPILER_TINYC )
-#	define GEN_DEBUG_TRAP() gen_process_exit( 1 )
+#	define GEN_DEBUG_TRAP() process_exit( 1 )
 #else
 #	define GEN_DEBUG_TRAP() __builtin_trap()
 #endif
@@ -31,4 +32,41 @@
 void     gen_assert_handler( char const* condition, char const* file, gen_s32 line, char const* msg, ... );
 gen_s32  gen_assert_crash( char const* condition );
 void     gen_process_exit( gen_u32 code );
+
+#if Build_Debug
+	#define fatal( fmt, ... )                            \
+	do                                                   \
+	{                                                    \
+		local_persist thread_local                       \
+		char buf[GEN_PRINTF_MAXLEN] = { 0 };             \
+													     \
+		va_list va;                                      \
+													     \
+		va_start(va, fmt);                               \
+		gen_str_fmt_va(buf, GEN_PRINTF_MAXLEN, fmt, va); \
+		va_end(va);                                      \
+													     \
+		GEN_PANIC(buf);                                  \
+	}                                                    \
+	while (0)
+#else
+
+#	define fatal( fmt, ... )						 \
+	do                                               \
+	{												 \
+		local_persist thread_local                   \
+		char buf[GEN_PRINTF_MAXLEN] = { 0 };         \
+													 \
+		va_list va;                                  \
+												     \
+		va_start(va, fmt);                           \
+		gen_str_fmt_out_err_va( fmt, va);            \
+		va_end(va);                                  \
+													 \
+		gen_process_exit(1);                         \
+	}             					                 \
+	while (0)
+#endif
+
 #pragma endregion Debug
+

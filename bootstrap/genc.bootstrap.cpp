@@ -108,25 +108,25 @@ int main()
 	using namespace gen;
 	gen::init();
 
-	Code push_ignores = scan_file( "helpers/gen.push_ignores.inline.hpp" );
-	Code pop_ignores  = scan_file( "helpers/gen.pop_ignores.inline.hpp" );
+	Code push_ignores = scan_file( "helpers/push_ignores.inline.hpp" );
+	Code pop_ignores  = scan_file( "helpers/pop_ignores.inline.hpp" );
 
 	// genc_dep.h
 	{
-		Code header_start = scan_file( "./dependencies/genc.header_start.h");
-		Code macros       = scan_file( "./dependencies/genc.macros.h" );
-		Code basic_types  = scan_file( "./dependencies/genc.basic_types.h");
-		Code debug        = scan_file( "./dependencies/genc.debug.h" );
-		Code memory       = scan_file( "./dependencies/genc.memory.h" );
-		Code string_ops   = scan_file( "./dependencies/genc.string_ops.h" );
-		Code printing     = scan_file( "./dependencies/genc.printing.h" );
-		Code hashing 	  = scan_file( "./dependencies/genc.hashing.h" );
-		Code strings      = scan_file( "./dependencies/genc.strings.h" );
-		Code timing       = scan_file( "./dependencies/genc.timing.h" );
+		Code header_start = scan_file( "./dependencies/header_start.h");
+		Code macros       = scan_file( "./dependencies/macros.h" );
+		Code basic_types  = scan_file( "./dependencies/basic_types.h");
+		Code debug        = scan_file( "./dependencies/debug.h" );
+		Code memory       = scan_file( "./dependencies/memory.h" );
+		Code string_ops   = scan_file( "./dependencies/string_ops.h" );
+		Code printing     = scan_file( "./dependencies/printing.h" );
+		Code hashing 	  = scan_file( "./dependencies/hashing.h" );
+		Code strings      = scan_file( "./dependencies/strings.h" );
+		Code timing       = scan_file( "./dependencies/timing.h" );
 
-		Code filesystem   = scan_file( "./dependencies/genc.filesystem.h" );
-		Code adt          = scan_file( "./dependencies/genc.adt.h" );
-		Code csv          = scan_file( "./dependencies/genc.csv.h" );
+		Code filesystem   = scan_file( "./dependencies/filesystem.h" );
+		Code adt          = scan_file( "./dependencies/adt.h" );
+		Code csv          = scan_file( "./dependencies/csv.h" );
 
 		CodeBody array_base_impl = gen_array_base();
 		CodeBody array_cstr      = gen_array( txt_StrC("char*"), txt_StrC("Array_CStr") );
@@ -166,11 +166,11 @@ int main()
 
 	// genc_dep.c
 	{
-		Code impl_start = scan_file( "./dependencies/genc.impl_start.c");
-		Code debug 	    = scan_file( "./dependencies/genc.debug.c" );
-		Code string_ops = scan_file( "./dependencies/genc.string_ops.c" );
-		Code hashing    = scan_file( "./dependencies/genc.hashing.c" );
-		Code timing     = scan_file( "./dependencies/genc.timing.c" );
+		Code impl_start = scan_file( "./dependencies/impl_start.c");
+		Code debug 	    = scan_file( "./dependencies/debug.c" );
+		Code string_ops = scan_file( "./dependencies/string_ops.c" );
+		Code hashing    = scan_file( "./dependencies/hashing.c" );
+		Code timing     = scan_file( "./dependencies/timing.c" );
 
 		Builder
 		deps_impl = Builder::open( "genc.dep.c" );
@@ -200,15 +200,15 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 	// genc.h
 	{
 		// Library
-		Code attributes = scan_file("./components/genc.attributes.h");
+		Code attributes = scan_file("./components/attributes.h");
 
 		CodeBody ecode      = gen_ecode();
 		CodeBody especifier = gen_especifier();
 
-		Code data_structures = scan_file("./components/genc.data_structures.h");
-		Code gen_interface   = scan_file("./components/genc.interface.h");
+		Code data_structures = scan_file("./components/data_structures.h");
+		Code gen_interface   = scan_file("./components/interface.h");
 
-		Code gen_builder     = scan_file("./components/genc.builder.h");
+		Code gen_builder     = scan_file("./components/builder.h");
 
 		Builder
 		genc_header = Builder::open("genc.h");

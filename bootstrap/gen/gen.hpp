@@ -866,6 +866,25 @@ void assert_handler( char const* condition, char const* file, s32 line, char con
 s32  assert_crash( char const* condition );
 void process_exit( u32 code );
 
+#if Build_Debug
+#define fatal( fmt, ... )                                                 \
+	do                                                                    \
+	{                                                                     \
+		local_persist thread_local char buf[ GEN_PRINTF_MAXLEN ] = { 0 }; \
+                                                                          \
+		str_fmt( buf, GEN_PRINTF_MAXLEN, fmt, __VA_ARGS__ );              \
+		GEN_PANIC( buf );                                                 \
+	} while ( 0 )
+#else
+
+#define fatal( fmt, ... )                       \
+	do                                          \
+	{                                           \
+		str_fmt_out_err_va( fmt, __VA_ARGS__ ); \
+		process_exit( 1 );                      \
+	} while ( 0 )
+#endif
+
 #pragma endregion Debug
 
 #pragma region Memory
@@ -1614,6 +1633,7 @@ struct FileInfo;
 // NOTE: A locally persisting buffer is used internally
 char* str_fmt_buf( char const* fmt, ... );
 char* str_fmt_buf_va( char const* fmt, va_list va );
+sw    str_fmt( char* str, sw n, char const* fmt, ... );
 sw    str_fmt_va( char* str, sw n, char const* fmt, va_list va );
 sw    str_fmt_out_va( char const* fmt, va_list va );
 sw    str_fmt_out_err( char const* fmt, ... );
@@ -1633,29 +1653,6 @@ inline sw log_fmt( char const* fmt, ... )
 	va_end( va );
 
 	return res;
-}
-
-inline sw fatal( char const* fmt, ... )
-{
-	local_persist thread_local char buf[ GEN_PRINTF_MAXLEN ] = { 0 };
-
-	va_list va;
-
-#if Build_Debug
-	va_start( va, fmt );
-	str_fmt_va( buf, GEN_PRINTF_MAXLEN, fmt, va );
-	va_end( va );
-
-	assert_crash( buf );
-	return -1;
-#else
-	va_start( va, fmt );
-	str_fmt_out_err_va( fmt, va );
-	va_end( va );
-
-	exit( 1 );
-	return -1;
-#endif
 }
 
 #pragma endregion Printing
@@ -2051,6 +2048,7 @@ struct HashTable
 			if ( new_ht.Hashes.num() == 0 )
 				new_ht.grow();
 
+			entry            = Entries[ idx ];
 			find_result      = new_ht.find( entry.Key );
 			last_added_index = new_ht.add_entry( entry.Key );
 
@@ -2161,7 +2159,7 @@ protected:
 		sw    idx;
 		Entry entry = { key, -1 };
 
-		idx = Entries.num();
+		idx         = Entries.num();
 		Entries.append( entry );
 		return idx;
 	}
@@ -3394,9 +3392,9 @@ using LogFailType = sw ( * )( char const*, ... );
 // By default this library will either crash or exit if an error is detected while generating codes.
 // Even if set to not use fatal, fatal will still be used for memory failures as the library is unusable when they occur.
 #ifdef GEN_DONT_USE_FATAL
-constexpr LogFailType log_failure = log_fmt;
+#define log_failure log_fmt
 #else
-constexpr LogFailType log_failure       = fatal;
+#define log_failure fatal
 #endif
 
 enum class AccessSpec : u32
@@ -5543,7 +5541,19 @@ Code Code::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -5553,7 +5563,19 @@ bool Code::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -5568,7 +5590,19 @@ void Code::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -5578,7 +5612,19 @@ String Code::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -5621,7 +5667,19 @@ Code CodeBody::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -5631,7 +5689,19 @@ bool CodeBody::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -5646,7 +5716,19 @@ void CodeBody::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -5656,7 +5738,19 @@ String CodeBody::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -5699,7 +5793,19 @@ Code CodeAttributes::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -5709,7 +5815,19 @@ bool CodeAttributes::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -5724,7 +5842,19 @@ void CodeAttributes::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -5734,7 +5864,19 @@ String CodeAttributes::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -5780,7 +5922,19 @@ AST_Attributes* CodeAttributes::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -5797,7 +5951,19 @@ Code CodeComment::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -5807,7 +5973,19 @@ bool CodeComment::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -5822,7 +6000,19 @@ void CodeComment::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -5832,7 +6022,19 @@ String CodeComment::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -5878,7 +6080,19 @@ AST_Comment* CodeComment::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -5895,7 +6109,19 @@ Code CodeConstructor::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -5905,7 +6131,19 @@ bool CodeConstructor::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -5920,7 +6158,19 @@ void CodeConstructor::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -5930,7 +6180,19 @@ String CodeConstructor::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -5976,7 +6238,19 @@ AST_Constructor* CodeConstructor::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -5993,7 +6267,19 @@ Code CodeClass::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6003,7 +6289,19 @@ bool CodeClass::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6018,7 +6316,19 @@ void CodeClass::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6028,7 +6338,19 @@ String CodeClass::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6071,7 +6393,19 @@ Code CodeDefine::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6081,7 +6415,19 @@ bool CodeDefine::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6096,7 +6442,19 @@ void CodeDefine::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6106,7 +6464,19 @@ String CodeDefine::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6152,7 +6522,19 @@ AST_Define* CodeDefine::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6169,7 +6551,19 @@ Code CodeDestructor::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6179,7 +6573,19 @@ bool CodeDestructor::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6194,7 +6600,19 @@ void CodeDestructor::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6204,7 +6622,19 @@ String CodeDestructor::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6250,7 +6680,19 @@ AST_Destructor* CodeDestructor::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6267,7 +6709,19 @@ Code CodeEnum::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6277,7 +6731,19 @@ bool CodeEnum::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6292,7 +6758,19 @@ void CodeEnum::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6302,7 +6780,19 @@ String CodeEnum::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6348,7 +6838,19 @@ AST_Enum* CodeEnum::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6365,7 +6867,19 @@ Code CodeExec::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6375,7 +6889,19 @@ bool CodeExec::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6390,7 +6916,19 @@ void CodeExec::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6400,7 +6938,19 @@ String CodeExec::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6446,7 +6996,19 @@ AST_Exec* CodeExec::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6463,7 +7025,19 @@ Code CodeExtern::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6473,7 +7047,19 @@ bool CodeExtern::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6488,7 +7074,19 @@ void CodeExtern::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6498,7 +7096,19 @@ String CodeExtern::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6544,7 +7154,19 @@ AST_Extern* CodeExtern::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6561,7 +7183,19 @@ Code CodeFriend::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6571,7 +7205,19 @@ bool CodeFriend::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6586,7 +7232,19 @@ void CodeFriend::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6596,7 +7254,19 @@ String CodeFriend::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6642,7 +7312,19 @@ AST_Friend* CodeFriend::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6659,7 +7341,19 @@ Code CodeFn::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6669,7 +7363,19 @@ bool CodeFn::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6684,7 +7390,19 @@ void CodeFn::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6694,7 +7412,19 @@ String CodeFn::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6740,7 +7470,19 @@ AST_Fn* CodeFn::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6757,7 +7499,19 @@ Code CodeInclude::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6767,7 +7521,19 @@ bool CodeInclude::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6782,7 +7548,19 @@ void CodeInclude::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6792,7 +7570,19 @@ String CodeInclude::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6838,7 +7628,19 @@ AST_Include* CodeInclude::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6855,7 +7657,19 @@ Code CodeModule::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6865,7 +7679,19 @@ bool CodeModule::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6880,7 +7706,19 @@ void CodeModule::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6890,7 +7728,19 @@ String CodeModule::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -6936,7 +7786,19 @@ AST_Module* CodeModule::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -6953,7 +7815,19 @@ Code CodeNS::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -6963,7 +7837,19 @@ bool CodeNS::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -6978,7 +7864,19 @@ void CodeNS::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -6988,7 +7886,19 @@ String CodeNS::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7034,7 +7944,19 @@ AST_NS* CodeNS::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7051,7 +7973,19 @@ Code CodeOperator::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7061,7 +7995,19 @@ bool CodeOperator::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7076,7 +8022,19 @@ void CodeOperator::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7086,7 +8044,19 @@ String CodeOperator::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7132,7 +8102,19 @@ AST_Operator* CodeOperator::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7149,7 +8131,19 @@ Code CodeOpCast::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7159,7 +8153,19 @@ bool CodeOpCast::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7174,7 +8180,19 @@ void CodeOpCast::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7184,7 +8202,19 @@ String CodeOpCast::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7230,7 +8260,19 @@ AST_OpCast* CodeOpCast::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7247,7 +8289,19 @@ Code CodeParam::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7257,7 +8311,19 @@ bool CodeParam::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7272,7 +8338,19 @@ void CodeParam::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7282,7 +8360,19 @@ String CodeParam::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7325,7 +8415,19 @@ Code CodePragma::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7335,7 +8437,19 @@ bool CodePragma::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7350,7 +8464,19 @@ void CodePragma::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7360,7 +8486,19 @@ String CodePragma::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7406,7 +8544,19 @@ AST_Pragma* CodePragma::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7423,7 +8573,19 @@ Code CodePreprocessCond::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7433,7 +8595,19 @@ bool CodePreprocessCond::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7448,7 +8622,19 @@ void CodePreprocessCond::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7458,7 +8644,19 @@ String CodePreprocessCond::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7504,7 +8702,19 @@ AST_PreprocessCond* CodePreprocessCond::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7521,7 +8731,19 @@ Code CodeSpecifiers::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7531,7 +8753,19 @@ bool CodeSpecifiers::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7546,7 +8780,19 @@ void CodeSpecifiers::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7556,7 +8802,19 @@ String CodeSpecifiers::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7599,7 +8857,19 @@ Code CodeStruct::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7609,7 +8879,19 @@ bool CodeStruct::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7624,7 +8906,19 @@ void CodeStruct::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7634,7 +8928,19 @@ String CodeStruct::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7677,7 +8983,19 @@ Code CodeTemplate::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7687,7 +9005,19 @@ bool CodeTemplate::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7702,7 +9032,19 @@ void CodeTemplate::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7712,7 +9054,19 @@ String CodeTemplate::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7758,7 +9112,19 @@ AST_Template* CodeTemplate::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7775,7 +9141,19 @@ Code CodeType::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7785,7 +9163,19 @@ bool CodeType::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7800,7 +9190,19 @@ void CodeType::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7810,7 +9212,19 @@ String CodeType::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7856,7 +9270,19 @@ AST_Type* CodeType::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7873,7 +9299,19 @@ Code CodeTypedef::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7883,7 +9321,19 @@ bool CodeTypedef::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7898,7 +9348,19 @@ void CodeTypedef::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -7908,7 +9370,19 @@ String CodeTypedef::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -7954,7 +9428,19 @@ AST_Typedef* CodeTypedef::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -7971,7 +9457,19 @@ Code CodeUnion::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -7981,7 +9479,19 @@ bool CodeUnion::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -7996,7 +9506,19 @@ void CodeUnion::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -8006,7 +9528,19 @@ String CodeUnion::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -8052,7 +9586,19 @@ AST_Union* CodeUnion::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -8069,7 +9615,19 @@ Code CodeUsing::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -8079,7 +9637,19 @@ bool CodeUsing::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -8094,7 +9664,19 @@ void CodeUsing::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -8104,7 +9686,19 @@ String CodeUsing::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -8150,7 +9744,19 @@ AST_Using* CodeUsing::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -8167,7 +9773,19 @@ Code CodeVar::duplicate( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::duplicate: Cannot duplicate code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::duplicate: Cannot duplicate code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )350, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return Code::Invalid;
 	}
 	return { rcast( AST*, ast )->duplicate() };
@@ -8177,7 +9795,19 @@ bool CodeVar::is_equal( Code other )
 {
 	if ( ast == nullptr || other.ast == nullptr )
 	{
-		log_failure( "Code::is_equal: Cannot compare code, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::is_equal: Cannot compare code, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )360, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return false;
 	}
 	return rcast( AST*, ast )->is_equal( other.ast );
@@ -8192,7 +9822,19 @@ void CodeVar::set_global( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::set_global: Cannot set code as global, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::set_global: Cannot set code as global, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )374, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return;
 	}
 	rcast( AST*, ast )->Parent = Code::Global.ast;
@@ -8202,7 +9844,19 @@ String CodeVar::to_string( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Code::to_string: Cannot convert code to string, AST is null!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Code::to_string: Cannot convert code to string, AST is null!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )384, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return { nullptr };
 	}
 	return rcast( AST*, ast )->to_string();
@@ -8248,7 +9902,19 @@ AST_Var* CodeVar::operator->( void )
 {
 	if ( ast == nullptr )
 	{
-		log_failure( "Attempt to dereference a nullptr!" );
+		do
+		{
+			static thread_local char buf[ ( ( 128 ) * ( s64 )( 1024 ) ) ] = { 0 };
+			str_fmt( buf, ( ( 128 ) * ( s64 )( 1024 ) ), "Attempt to dereference a nullptr!" );
+			do
+			{
+				if ( ! ( 0 ) )
+				{
+					assert_handler( "0", "..\\..\\project\\helpers/helper.hpp", ( s64 )428, buf );
+					__debugbreak();
+				}
+			} while ( 0 );
+		} while ( 0 );
 		return nullptr;
 	}
 	return ast;
@@ -9695,6 +11361,16 @@ sw str_fmt_file( struct FileInfo* f, char const* fmt, ... )
 	va_list va;
 	va_start( va, fmt );
 	res = str_fmt_file_va( f, fmt, va );
+	va_end( va );
+	return res;
+}
+
+sw str_fmt( char* str, sw n, char const* fmt, ... )
+{
+	sw      res;
+	va_list va;
+	va_start( va, fmt );
+	res = str_fmt_va( str, n, fmt, va );
 	va_end( va );
 	return res;
 }
@@ -20615,12 +22291,6 @@ internal CodeTypedef parse_typedef()
 
 				if ( tok.Type == TokType::BraceCurly_Close )
 				{
-					typedef struct
-					{
-						int a;
-						int b;
-					}* Something;
-
 					// Its an inplace definition
 					// typdef <which> <type_identifier> { ... } <identifier>;
 					ok_to_parse = true;

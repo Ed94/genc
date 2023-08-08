@@ -137,7 +137,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 
 		<type>* <fn>_get( <tbl_type> self, gen_u64 key )
 		{
-			gen_sw idx = <fn>_find( self, key ).EntryIndex;
+			gen_sw idx = <fn>__find( self, key ).EntryIndex;
 			if ( idx > 0 )
 				return & self.Entries[idx].Value;
 
@@ -194,8 +194,8 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 					<fn>_grow( & new_tbl );
 
 				entry            = & self->Entries[ idx ];
-				find_result      = <fn>_find( new_tbl, entry->Key );
-				last_added_index = <fn>_add_entry( new_tbl, entry->Key );
+				find_result      = <fn>__find( new_tbl, entry->Key );
+				last_added_index = <fn>__add_entry( new_tbl, entry->Key );
 
 				if ( find_result.PrevIndex < 0 )
 					new_tbl.Hashes[ find_result.HashIndex ] = last_added_index;
@@ -226,7 +226,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 				gen_HT_FindResult find_result;
 
 				entry       = & self.Entries[ idx ];
-				find_result = <fn>_find( self, entry->Key );
+				find_result = <fn>__find( self, entry->Key );
 
 				if ( find_result.PrevIndex < 0 )
 					self.Hashes[ find_result.HashIndex ] = idx;
@@ -237,7 +237,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 
 		void <fn>_remove( <tbl_type> self, gen_u64 key )
 		{
-			gen_HT_FindResult find_result = <fn>_find( self, key );
+			gen_HT_FindResult find_result = <fn>__find( self, key );
 
 			if ( find_result.EntryIndex >= 0 )
 			{
@@ -257,9 +257,9 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 			gen_HT_FindResult find_result;
 
 			if ( gen_array_header( self->Hashes )->Num == 0 )
-				grow();
+				<fn>_grow( self );
 
-			find_result = <fn>_find( key );
+			find_result = <fn>__find( * self, key );
 
 			if ( find_result.EntryIndex >= 0 )
 			{
@@ -267,7 +267,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 			}
 			else
 			{
-				idx = <fn>_add_entry( self, key );
+				idx = <fn>__add_entry( self, key );
 
 				if ( find_result.PrevIndex >= 0 )
 				{
@@ -281,13 +281,13 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 
 			self->Entries[ idx ].Value = value;
 
-			if ( full() )
+			if ( <fn>__full( * self ) )
 				<fn>_grow( self );
 		}
 
 		gen_sw <fn>_slot( <tbl_type> self, gen_u64 key )
 		{
-			for ( gen_sw idx = 0; idx < gen_array_header( self.Hashes )->num(); ++idx )
+			for ( gen_sw idx = 0; idx < gen_array_header( self.Hashes )->Num; ++idx )
 				if ( self.Hashes[ idx ] == key )
 					return idx;
 
@@ -306,7 +306,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 
 		gen_HT_FindResult <fn>__find( <tbl_type> self, gen_u64 key )
 		{
-			FindResult result = { -1, -1, -1 };
+			gen_HT_FindResult result = { -1, -1, -1 };
 
 			ArrayHeader* hash_header = gen_array_header( self.Hashes );
 
@@ -333,7 +333,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 			ArrayHeader* hash_header    = gen_array_header( self.Hashes );
 			ArrayHeader* entries_header = gen_array_header( self.Entries );
 
-			return 0.75f * hash_header->Num < Entries->Num;
+			return 0.75f * hash_header->Num < entries_header->Num;
 		}
 	)));
 #pragma pop_macro( "GEN_ASSERT" )
