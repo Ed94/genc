@@ -2081,9 +2081,16 @@ struct HashTable
 
 		for ( idx = 0; idx < Entries.num(); idx++ )
 		{
-			Entry* entry;
-
+			Entry*     entry;
 			FindResult find_result;
+
+			entry       = &Entries[ idx ];
+			find_result = find( entry->Key );
+
+			if ( find_result.PrevIndex < 0 )
+				Hashes[ find_result.HashIndex ] = idx;
+			else
+				Entries[ find_result.PrevIndex ].Next = idx;
 		}
 	}
 
@@ -4106,6 +4113,7 @@ struct AST
 
 	union
 	{
+		b32        IsFunction;    // Used by typedef to not serialize the name field.
 		OperatorT  Op;
 		AccessSpec ParentAccess;
 		s32        NumEntries;
@@ -4169,6 +4177,7 @@ struct AST_POD
 
 	union
 	{
+		b32        IsFunction;    // Used by typedef to not serialize the name field.
 		OperatorT  Op;
 		AccessSpec ParentAccess;
 		s32        NumEntries;
@@ -5030,7 +5039,7 @@ struct AST_Typedef
 	StringCached Name;
 	CodeT        Type;
 	ModuleFlag   ModuleFlags;
-	char         _PAD_UNUSED_[ sizeof( u32 ) ];
+	b32          IsFunction;
 };
 
 static_assert( sizeof( AST_Typedef ) == sizeof( AST ), "ERROR: AST_Typedef is not the same size as AST" );
@@ -13004,7 +13013,10 @@ String AST::to_string()
 
 			result.append( "typedef " );
 
-			result.append_fmt( "%s %s", UnderlyingType->to_string(), Name );
+			if ( IsFunction )
+				result.append( UnderlyingType->to_string() );
+			else
+				result.append_fmt( "%s %s", UnderlyingType->to_string(), Name );
 
 			if ( UnderlyingType->Type == Typename && UnderlyingType->ArrExpr )
 			{
@@ -14937,7 +14949,6 @@ CodeTypedef def_typedef( StrC name, Code type, CodeAttributes attributes, Module
 {
 	using namespace ECode;
 
-	name_check( def_typedef, name );
 	null_check( def_typedef, type );
 
 	switch ( type->Type )
@@ -14975,11 +14986,27 @@ CodeTypedef def_typedef( StrC name, Code type, CodeAttributes attributes, Module
 	}
 
 	CodeTypedef result     = ( CodeTypedef )make_code();
-	result->Name           = get_cached_string( name );
 	result->Type           = ECode::Typedef;
 	result->ModuleFlags    = mflags;
 
 	result->UnderlyingType = type;
+
+	if ( name.Len <= 0 )
+	{
+		if ( type->Type != Untyped )
+		{
+			log_failure( "gen::def_typedef: name was empty and type was not untyped (indicating its a function typedef) - %s", type.debug_str() );
+			return CodeInvalid;
+		}
+
+		result->Name       = get_cached_string( type->Name );
+		result->IsFunction = true;
+	}
+	else
+	{
+		result->Name       = get_cached_string( name );
+		result->IsFunction = false;
+	}
 
 	return result;
 }
@@ -17404,7 +17431,7 @@ internal CodeOpCast      parse_operator_cast();
 internal CodeStruct      parse_struct( bool inplace_def = false );
 internal CodeVar         parse_variable();
 internal CodeTemplate    parse_template();
-internal CodeType        parse_type();
+internal CodeType        parse_type( bool* is_function = nullptr );
 internal CodeTypedef     parse_typedef();
 internal CodeUnion       parse_union( bool inplace_def = false );
 internal CodeUsing       parse_using();
@@ -18567,16 +18594,12 @@ internal inline Code parse_operator_function_or_variable( bool expects_function,
 	return result;
 }
 
-internal inline Code parse_complicated_definition( Parser::TokType which )
+internal inline Code parse_foward_or_definition( Parser::TokType which, bool is_inplace )
 {
 	using namespace Parser;
-	push_scope();
 
-	bool is_inplace                                               = false;
+	Code result = CodeInvalid;
 
-	labeled_scope_start PARSE_FORWARD_OR_DEFINITION : Code result = CodeInvalid;
-
-	// <which> <type_identifier>;
 	switch ( which )
 	{
 		case TokType::Decl_Class :
@@ -18609,7 +18632,16 @@ internal inline Code parse_complicated_definition( Parser::TokType which )
 			Context.pop();
 			return CodeInvalid;
 	}
-	labeled_scope_end
+
+	return CodeInvalid;
+}
+
+internal inline Code parse_complicated_definition( Parser::TokType which )
+{
+	using namespace Parser;
+	push_scope();
+
+	bool is_inplace = false;
 
 	TokArray tokens = Context.Tokens;
 
@@ -18630,7 +18662,7 @@ internal inline Code parse_complicated_definition( Parser::TokType which )
 	if ( ( idx - 2 ) == tokens.Idx )
 	{
 		// Its a forward declaration only
-		goto PARSE_FORWARD_OR_DEFINITION;
+		return parse_foward_or_definition( which, is_inplace );
 	}
 
 	Token tok = tokens[ idx - 1 ];
@@ -18658,7 +18690,7 @@ internal inline Code parse_complicated_definition( Parser::TokType which )
 		else if ( is_indirection )
 		{
 			// Its a indirection type with type ID using struct namespace.
-			// <which> <type_identifier> <identifier>;
+			// <which> <type_identifier>* <identifier>;
 			ok_to_parse = true;
 		}
 
@@ -18677,7 +18709,7 @@ internal inline Code parse_complicated_definition( Parser::TokType which )
 	{
 		// Its a definition
 		// <which> { ... };
-		goto PARSE_FORWARD_OR_DEFINITION;
+		return parse_foward_or_definition( which, is_inplace );
 	}
 	else if ( tok.Type == TokType::BraceSquare_Close )
 	{
@@ -20328,7 +20360,7 @@ CodeTemplate parse_template( StrC def )
 	return parse_template();
 }
 
-internal CodeType parse_type()
+internal CodeType parse_type( bool* is_function )
 {
 	using namespace Parser;
 	push_scope();
@@ -20439,12 +20471,23 @@ internal CodeType parse_type()
 		eat( currtok.Type );
 	}
 
-BruteforceCaptureAgain:
-	if ( check( TokType::Capture_Start ) && context_tok.Type != TokType::Decl_Operator )
+	bool is_first_capture = true;
+	while ( check( TokType::Capture_Start ) && context_tok.Type != TokType::Decl_Operator )
 	{
 		// Brute force capture the entire thing.
 		// Function typedefs are complicated and there are not worth dealing with for validation at this point...
 		eat( TokType::Capture_Start );
+
+		if ( is_function && is_first_capture )
+		{
+			while ( check( TokType::Star ) )
+			{
+				eat( TokType::Star );
+			}
+
+			*is_function = true;
+			eat( TokType::Identifier );
+		}
 
 		s32 level = 0;
 		while ( left && ( currtok.Type != TokType::Capture_End || level > 0 ) )
@@ -20457,11 +20500,10 @@ BruteforceCaptureAgain:
 
 			eat( currtok.Type );
 		}
+
 		eat( TokType::Capture_End );
-
-		goto BruteforceCaptureAgain;
-
 		brute_sig.Length = ( ( sptr )prevtok.Text + prevtok.Length ) - ( sptr )brute_sig.Text;
+		is_first_capture = false;
 	}
 
 	using namespace ECode;
@@ -20510,6 +20552,7 @@ internal CodeTypedef parse_typedef()
 	using namespace Parser;
 	push_scope();
 
+	bool  is_function = false;
 	Token name        = { nullptr, 0, TokType::Invalid };
 	Code  array_expr  = { nullptr };
 	Code  type        = { nullptr };
@@ -20535,27 +20578,104 @@ internal CodeTypedef parse_typedef()
 	}
 	else
 	{
-		if ( check( TokType::Decl_Enum ) )
-			type = parse_enum( from_typedef );
+		bool is_complicated = currtok.Type == TokType::Decl_Enum || currtok.Type == TokType::Decl_Class || currtok.Type == TokType::Decl_Struct
+		|| currtok.Type == TokType::Decl_Union;
 
-		else if ( check( TokType::Decl_Class ) )
-			type = parse_class( from_typedef );
+		if ( is_complicated )
+		{
+			TokArray tokens = Context.Tokens;
 
-		else if ( check( TokType::Decl_Struct ) )
-			type = parse_struct( from_typedef );
+			s32 idx         = tokens.Idx;
+			s32 level       = 0;
+			for ( ; idx < tokens.Arr.num(); idx++ )
+			{
+				if ( tokens[ idx ].Type == TokType::BraceCurly_Open )
+					level++;
 
-		else if ( check( TokType::Decl_Union ) )
-			type = parse_union( from_typedef );
+				if ( tokens[ idx ].Type == TokType::BraceCurly_Close )
+					level--;
 
+				if ( level == 0 && tokens[ idx ].Type == TokType::Statement_End )
+					break;
+			}
+
+			if ( ( idx - 2 ) == tokens.Idx )
+			{
+				// Its a forward declaration only
+				type = parse_foward_or_definition( currtok.Type, from_typedef );
+			}
+
+			Token tok = tokens[ idx - 1 ];
+			if ( tok.Type == TokType::Identifier )
+			{
+				tok                 = tokens[ idx - 2 ];
+
+				bool is_indirection = tok.Type == TokType::Ampersand || tok.Type == TokType::Star;
+
+				bool ok_to_parse    = false;
+
+				if ( tok.Type == TokType::BraceCurly_Close )
+				{
+					typedef struct
+					{
+						int a;
+						int b;
+					}* Something;
+
+					// Its an inplace definition
+					// typdef <which> <type_identifier> { ... } <identifier>;
+					ok_to_parse = true;
+				}
+				else if ( tok.Type == TokType::Identifier && tokens[ idx - 3 ].Type == TokType::Decl_Struct )
+				{
+					// Its a variable with type ID using struct namespace.
+					// <which> <type_identifier> <identifier>;
+					ok_to_parse = true;
+				}
+				else if ( is_indirection )
+				{
+					// Its a indirection type with type ID using struct namespace.
+					// <which> <type_identifier>* <identifier>;
+					ok_to_parse = true;
+				}
+
+				if ( ! ok_to_parse )
+				{
+					log_failure( "Unsupported or bad member definition after struct declaration\n%s", Context.to_string() );
+					Context.pop();
+					return CodeInvalid;
+				}
+
+				type = parse_type();
+			}
+			else if ( tok.Type == TokType::BraceCurly_Close )
+			{
+				// Its a definition
+				// <which> { ... };
+				type = parse_foward_or_definition( currtok.Type, from_typedef );
+			}
+			else if ( tok.Type == TokType::BraceSquare_Close )
+			{
+				// Its an array definition
+				// <which> <type_identifier> <identifier> [ ... ];
+				type = parse_type();
+			}
+			else
+			{
+				log_failure( "Unsupported or bad member definition after struct declaration\n%s", Context.to_string() );
+				Context.pop();
+				return CodeInvalid;
+			}
+		}
 		else
-			type = parse_type();
+			type = parse_type( &is_function );
 
 		if ( check( TokType::Identifier ) )
 		{
 			name = currtok;
 			eat( TokType::Identifier );
 		}
-		else
+		else if ( ! is_function )
 		{
 			log_failure( "Error, expected identifier for typedef\n%s", Context.to_string() );
 			Context.pop();
@@ -20569,10 +20689,20 @@ internal CodeTypedef parse_typedef()
 
 	using namespace ECode;
 
-	CodeTypedef result     = ( CodeTypedef )make_code();
-	result->Type           = Typedef;
-	result->Name           = get_cached_string( name );
-	result->ModuleFlags    = mflags;
+	CodeTypedef result  = ( CodeTypedef )make_code();
+	result->Type        = Typedef;
+	result->ModuleFlags = mflags;
+
+	if ( is_function )
+	{
+		result->Name       = type->Name;
+		result->IsFunction = true;
+	}
+	else
+	{
+		result->Name       = get_cached_string( name );
+		result->IsFunction = false;
+	}
 
 	result->UnderlyingType = type;
 

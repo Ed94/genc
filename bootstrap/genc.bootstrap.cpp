@@ -4,6 +4,7 @@
 #define GEN_IMPLEMENTATION
 #include "gen/gen.hpp"
 #include "genc.array.hpp"
+#include "genc.hashtable.hpp"
 
 using namespace gen;
 
@@ -128,10 +129,11 @@ int main()
 		Code csv          = scan_file( "./dependencies/genc.csv.h" );
 
 		CodeBody array_base_impl = gen_array_base();
-		CodeBody array_cstr = gen_array( txt_StrC("char*"), txt_StrC("gen_Array_CStr") );
+		CodeBody array_cstr      = gen_array( txt_StrC("char*"), txt_StrC("Array_CStr") );
+		CodeBody array_sw        = gen_array( txt_StrC("gen_sw"), txt_StrC("Array_sw") );
 
-		// CodeBody hashtable_base_impl   = gen_hashtable_base();
-		// CodeBody hashtable_stringcache = gen_hashtable( txt_StrC("gen_StringCache"), txt_StrC("gen_HashTable_StringCache") );
+		CodeBody hashtable_base_impl   = gen_hashtable_base();
+		CodeBody hashtable_stringcache = gen_hashtable( txt_StrC("gen_StringCached"), txt_StrC("StringCache") );
 
 		Builder
 		deps_header = Builder::open("genc.dep.h");
@@ -151,8 +153,9 @@ int main()
 				deps_header.print( array_base_impl );
 				deps_header.print( fmt_newline );
 				deps_header.print( array_cstr );
-				// dep_header.print( hashtable_base_impl );
-				// dep_header.print( hashtable_stringcache );
+				deps_header.print( array_sw );
+				deps_header.print( hashtable_base_impl );
+				deps_header.print( hashtable_stringcache );
 				deps_header.print_fmt("#pragma endregion Containers\n\n");
 			}
 			deps_header.print( filesystem );
