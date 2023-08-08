@@ -2051,7 +2051,6 @@ struct HashTable
 			if ( new_ht.Hashes.num() == 0 )
 				new_ht.grow();
 
-			entry            = Entries[ idx ];
 			find_result      = new_ht.find( entry.Key );
 			last_added_index = new_ht.add_entry( entry.Key );
 
@@ -2162,7 +2161,7 @@ protected:
 		sw    idx;
 		Entry entry = { key, -1 };
 
-		idx         = Entries.num();
+		idx = Entries.num();
 		Entries.append( entry );
 		return idx;
 	}
