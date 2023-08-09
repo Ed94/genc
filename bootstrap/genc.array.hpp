@@ -19,8 +19,8 @@ CodeBody gen_array_base()
 		};
 	));
 
-	Code grow_formula = untyped_str( txt_StrC( "#define gen_array_grow_formula( value ) ( 2 * value + 8 )\n" ));
-	Code get_header   = untyped_str( txt_StrC( "#define gen_array_header( self ) ( (ArrayHeader*)( self ) - 1)\n" ));
+	Code grow_formula = untyped_str( txt( "#define gen_array_grow_formula( value ) ( 2 * value + 8 )\n" ));
+	Code get_header   = untyped_str( txt( "#define gen_array_header( self ) ( (ArrayHeader*)( self ) - 1)\n" ));
 
 	return def_global_body( args( td_header, header, grow_formula, get_header ) );
 };
@@ -280,11 +280,11 @@ CodeBody gen_array( StrC type, StrC array_name )
 #pragma pop_macro( "GEN_ASSERT" )
 
 	return def_global_body( args(
-		def_pragma( to_StrC( str_fmt_buf( "region %S", array_type ))),
+		def_pragma( to_str( str_fmt_buf( "region %S", array_type ))),
 		fmt_newline,
 		result,
 		fmt_newline,
-		def_pragma( to_StrC( str_fmt_buf( "endregion %S", array_type ))),
+		def_pragma( to_str( str_fmt_buf( "endregion %S", array_type ))),
 		fmt_newline
 	));
 };

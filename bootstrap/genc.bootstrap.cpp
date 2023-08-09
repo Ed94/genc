@@ -126,11 +126,11 @@ int main()
 		Code timing       = scan_file( "./dependencies/timing.h" );
 
 		CodeBody array_base_impl = gen_array_base();
-		CodeBody array_cstr      = gen_array( txt_StrC("char*"), txt_StrC("Array_CStr") );
-		CodeBody array_sw        = gen_array( txt_StrC("gen_sw"), txt_StrC("Array_sw") );
+		CodeBody array_cstr      = gen_array( txt("char*"), txt("Array_CStr") );
+		CodeBody array_sw        = gen_array( txt("gen_sw"), txt("Array_sw") );
 
 		CodeBody hashtable_base_impl   = gen_hashtable_base();
-		CodeBody hashtable_stringcache = gen_hashtable( txt_StrC("gen_StringCached"), txt_StrC("StringCache") );
+		CodeBody hashtable_stringcache = gen_hashtable( txt("gen_StringCached"), txt("StringCache") );
 
 		Builder
 		header = Builder::open("genc.dep.h");
@@ -177,7 +177,7 @@ int main()
 		Builder
 		src = Builder::open( "genc.dep.c" );
 		src.print_fmt("// This file is intended to be included within genc.c (There is no pragma diagnostic ignores)\n");
-		src.print( def_include( txt_StrC("genc.dep.h") ) );
+		src.print( def_include( txt("genc.dep.h") ) );
 		src.print( fmt_newline );
 
 		src.print( src_start );
@@ -245,7 +245,7 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 	{
 		Builder
 		src = Builder::open("genc.c");
-		src.print( def_include( txt_StrC("genc.h") ) );
+		src.print( def_include( txt("genc.h") ) );
 		// src.print();
 		src.write();
 	}
@@ -257,7 +257,7 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 		Builder
 		header = Builder::open("genc_builder.h");
 		header.print( pragma_once );
-		header.print( def_include( txt_StrC("genc.h") ) );
+		header.print( def_include( txt("genc.h") ) );
 		header.print( builder_header );
 		header.write();
 	}
@@ -268,7 +268,7 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 
 		Builder
 		header = Builder::open("genc_builder.c");
-		header.print( def_include( txt_StrC("genc_builder.h") ) );
+		header.print( def_include( txt("genc_builder.h") ) );
 		header.print( builder_src );
 		header.write();
 	}
@@ -282,7 +282,7 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 		Builder
 		header = Builder::open("genc_scanner.h");
 		header.print( pragma_once );
-		header.print( def_include( txt_StrC("genc.h") ) );
+		header.print( def_include( txt("genc.h") ) );
 
 		header.print_fmt( "#pragma region Parsing\n\n" );
 		header.print( adt );
@@ -301,7 +301,7 @@ R"(//! If its desired to roll your own dependencies, define GEN_ROLL_OWN_DEPENDE
 
 		Builder
 		header = Builder::open("genc_scanner.c");
-		header.print( def_include( txt_StrC("genc_scanner.h") ) );
+		header.print( def_include( txt("genc_scanner.h") ) );
 		header.print( builder_src );
 		header.write();
 	}

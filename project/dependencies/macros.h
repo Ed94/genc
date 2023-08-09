@@ -122,6 +122,12 @@
 #define min( a, b )                   ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define size_of( x )                  ( gen_sw )( sizeof( x ) )
 
+#if defined( _MSC_VER ) || defined( GEN_COMPILER_TINYC )
+#	define offset_of( Type, element ) ( ( GEN_NS( gen_sw ) ) & ( ( ( Type* )0 )->element ) )
+#else
+#	define offset_of( Type, element ) __builtin_offsetof( Type, element )
+#endif
+
 #define swap( Type, a, b ) \
 	do                     \
 	{                      \

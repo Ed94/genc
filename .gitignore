@@ -1,9 +1,14 @@
 .idea
 
 build/*
+**/genc.h
+**/genc.c
 **/genc.dep.h
 **/genc.dep.c
-**/genc.*
+**/genc_builder.h
+**/genc_builder.c
+**/genc_scanner.h
+**/genc_scanner.c
 
 
 ## Ignore Visual Studio temporary files, build results, and

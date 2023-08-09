@@ -8,7 +8,7 @@ struct gen_Str
 };
 typedef char const* gen_StrC;
 
-#define gen_strc_len( strc ) ( (sw)( strc - sizeof(gen_sw) ) )
+#define gen_str_len( strc ) ( (sw)( strc - sizeof(gen_sw) ) )
 
 typedef char*       gen_String;
 typedef char const* gen_StringCached;

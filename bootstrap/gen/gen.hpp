@@ -152,25 +152,6 @@
 #define GEN_DEF_INLINE  static
 #define GEN_IMPL_INLINE static inline
 
-#ifdef GEN_COMPILER_MSVC
-#define forceinline __forceinline
-#define neverinline __declspec( noinline )
-#elif defined( GEN_COMPILER_GCC )
-#define forceinline inline __attribute__( ( __always_inline__ ) )
-#define neverinline __attribute__( ( __noinline__ ) )
-#elif defined( GEN_COMPILER_CLANG )
-#if __has_attribute( __always_inline__ )
-#define forceinline inline __attribute__( ( __always_inline__ ) )
-#define neverinline __attribute__( ( __noinline__ ) )
-#else
-#define forceinline
-#define neverinline
-#endif
-#else
-#define forceinline
-#define neverinline
-#endif
-
 #pragma endregion Platform Detection
 
 #pragma region Mandatory Includes
@@ -205,6 +186,25 @@ GEN_NS_BEGIN
 #define global        static    // Global variables
 #define internal      static    // Internal linkage
 #define local_persist static    // Local Persisting variables
+
+#ifdef GEN_COMPILER_MSVC
+#define forceinline __forceinline
+#define neverinline __declspec( noinline )
+#elif defined( GEN_COMPILER_GCC )
+#define forceinline inline __attribute__( ( __always_inline__ ) )
+#define neverinline __attribute__( ( __noinline__ ) )
+#elif defined( GEN_COMPILER_CLANG )
+#if __has_attribute( __always_inline__ )
+#define forceinline inline __attribute__( ( __always_inline__ ) )
+#define neverinline __attribute__( ( __noinline__ ) )
+#else
+#define forceinline
+#define neverinline
+#endif
+#else
+#define forceinline
+#define neverinline
+#endif
 
 // Bits
 
@@ -700,6 +700,12 @@ N,                     \
 #define min( a, b )                   ( ( a ) < ( b ) ? ( a ) : ( b ) )
 #define size_of( x )                  ( sw )( sizeof( x ) )
 
+#if defined( _MSC_VER ) || defined( GEN_COMPILER_TINYC )
+#define offset_of( Type, element ) ( ( GEN_NS( gen_sw ) ) & ( ( ( Type* )0 )->element ) )
+#else
+#define offset_of( Type, element ) __builtin_offsetof( Type, element )
+#endif
+
 template< class Type >
 void swap( Type& a, Type& b )
 {
@@ -867,7 +873,7 @@ s32  assert_crash( char const* condition );
 void process_exit( u32 code );
 
 #if Build_Debug
-#define fatal( fmt, ... )                                                 \
+#define GEN_FATAL( fmt, ... )                                             \
 	do                                                                    \
 	{                                                                     \
 		local_persist thread_local char buf[ GEN_PRINTF_MAXLEN ] = { 0 }; \
@@ -877,11 +883,11 @@ void process_exit( u32 code );
 	} while ( 0 )
 #else
 
-#define fatal( fmt, ... )                       \
-	do                                          \
-	{                                           \
-		str_fmt_out_err( fmt, __VA_ARGS__ );    \
-		process_exit( 1 );                      \
+#define GEN_FATAL( fmt, ... )                \
+	do                                       \
+	{                                        \
+		str_fmt_out_err( fmt, __VA_ARGS__ ); \
+		process_exit( 1 );                   \
 	} while ( 0 )
 #endif
 
@@ -2201,7 +2207,7 @@ u64 crc64( void const* data, sw len );
 
 #pragma endregion Hashing
 
-#pragma region String
+#pragma region Strings
 
 // Constant string with length.
 struct StrC
@@ -2215,20 +2221,16 @@ struct StrC
 	}
 };
 
-#define txt_StrC( text )         \
+#define cast_to_strc( str ) *rcast( StrC*, str - sizeof( sw ) )
+#define txt( text )              \
 	StrC                         \
 	{                            \
 		sizeof( text ) - 1, text \
 	}
 
-StrC to_StrC( char const* str )
+StrC to_str( char const* str )
 {
 	return { str_len( str ), str };
-}
-
-sw StrC_len( char const* str )
-{
-	return ( sw )( str - 1 );
 }
 
 // Dynamic String
@@ -2240,8 +2242,8 @@ struct String
 	struct Header
 	{
 		AllocatorInfo Allocator;
-		sw            Length;
 		sw            Capacity;
+		sw            Length;
 	};
 
 	static uw grow_formula( uw value )
@@ -2552,22 +2554,24 @@ struct String
 		return Data[ index ];
 	}
 
-	char* Data = nullptr;
+	char* Data;
 };
 
 struct String_POD
 {
 	char* Data;
-
-	operator String()
-	{
-		return *rcast( String*, this );
-	}
 };
 
 static_assert( sizeof( String_POD ) == sizeof( String ), "String is not a POD" );
 
-#pragma endregion String
+// Implements basic string interning. Data structure is based off the ZPL Hashtable.
+using StringTable = HashTable< String const >;
+
+// Represents strings cached with the string table.
+// Should never be modified, if changed string is desired, cache_string( str ) another.
+using StringCached = String const;
+
+#pragma endregion Strings
 
 #pragma region File Handling
 
@@ -3388,6 +3392,7 @@ GEN_NS_END
 
 // GEN_ROLL_OWN_DEPENDENCIES
 #endif
+
 GEN_NS_BEGIN
 
 #pragma region Types
@@ -3395,11 +3400,11 @@ GEN_NS_BEGIN
 using LogFailType = sw ( * )( char const*, ... );
 
 // By default this library will either crash or exit if an error is detected while generating codes.
-// Even if set to not use fatal, fatal will still be used for memory failures as the library is unusable when they occur.
+// Even if set to not use GEN_FATAL, GEN_FATAL will still be used for memory failures as the library is unusable when they occur.
 #ifdef GEN_DONT_USE_FATAL
 #define log_failure log_fmt
 #else
-#define log_failure fatal
+#define log_failure GEN_FATAL
 #endif
 
 enum class AccessSpec : u32
@@ -3438,7 +3443,6 @@ enum class EnumT : u8
 constexpr EnumT EnumClass   = EnumT::Class;
 constexpr EnumT EnumRegular = EnumT::Regular;
 
-
 enum class ModuleFlag : u32
 {
 	None   = 0,
@@ -3467,53 +3471,6 @@ constexpr EPreprocessCond PreprocessCond_If       = EPreprocessCond::If;
 constexpr EPreprocessCond PreprocessCond_IfDef    = EPreprocessCond::IfDef;
 constexpr EPreprocessCond PreprocessCond_IfNotDef = EPreprocessCond::IfNotDef;
 constexpr EPreprocessCond PreprocessCond_ElIf     = EPreprocessCond::ElIf;
-
-/*
-    Predefined attributes
-    Used for the parser constructors to identify non-standard attributes
-
-    Override these to change the attribute to your own unique identifier convention.
-
-    The tokenizer identifies attribute defines with the GEN_DEFINE_ATTRIBUTE_TOKENS macros.
-    See the example below and the Define_TokType macro used in gen.cpp to know the format.
-    While the library can parse raw attributes, most projects use defines to wrap them for compiler
-    platform indendence. The token define allows support for them without having to modify the library.
-*/
-#if defined( GEN_SYSTEM_WINDOWS ) || defined( __CYGWIN__ )
-#ifndef GEN_Attribute_Keyword
-#define GEN_API_Export_Code   __declspec( dllexport )
-#define GEN_API_Import_Code   __declspec( dllimport )
-#define GEN_Attribute_Keyword __declspec
-#endif
-
-constexpr char const* Attribute_Keyword = stringize( GEN_Attribute_Keyword );
-
-#elif GEN_HAS_ATTRIBUTE( visibility ) || GEN_GCC_VERSION_CHECK( 3, 3, 0 )
-#ifndef GEN_Attribute_Keyword
-#define GEN_API_Export_Code   __attribute__( ( visibility( "default" ) ) )
-#define GEN_API_Import_Code   __attribute__( ( visibility( "default" ) ) )
-#define GEN_Attribute_Keyword __attribute__
-#endif
-
-constexpr char const* Attribute_Keyword = stringize( GEN_Attribute_Keyword );
-
-#else
-#ifndef GEN_Attribute_Keyword
-#define GEN_API_Export_Code
-#define GEN_API_Import_Code
-#define GEN_Attribute_Keyword
-#endif
-
-constexpr char const* Attribute_Keyword = "";
-
-#endif
-
-// Implements basic string interning. Data structure is based off the ZPL Hashtable.
-using StringTable = HashTable< String const >;
-
-// Represents strings cached with the string table.
-// Should never be modified, if changed string is desired, cache_string( str ) another.
-using StringCached = String const;
 
 namespace ECode
 {
@@ -8750,13 +8707,13 @@ Code scan_file( char const* path )
 	FileError error = file_open_mode( &file, EFileMode_READ, path );
 	if ( error != EFileError_NONE )
 	{
-		fatal( "scan_file: Could not open: %s", path );
+		GEN_FATAL( "scan_file: Could not open: %s", path );
 	}
 
 	sw fsize = file_size( &file );
 	if ( fsize <= 0 )
 	{
-		fatal( "scan_file: %s is empty", path );
+		GEN_FATAL( "scan_file: %s is empty", path );
 	}
 
 	String str = String::make_reserve( GlobalAllocator, fsize );
@@ -8780,7 +8737,6 @@ struct SymbolInfo
 	char const*  Marker;
 	Code         Signature;
 };
-
 
 struct Scanner
 {
@@ -9968,7 +9924,7 @@ void* Arena::allocator_proc( void* allocator_data, AllocType type, sw size, sw a
 			if ( arena->TotalUsed + total_size > ( sw )arena->TotalSize )
 			{
 				// zpl__printf_err("%s", "Arena out of memory\n");
-				fatal( "Arena out of memory! (Possibly could not fit for the largest size Arena!!)" );
+				GEN_FATAL( "Arena out of memory! (Possibly could not fit for the largest size Arena!!)" );
 				return nullptr;
 			}
 
@@ -13348,10 +13304,10 @@ internal void* Global_Allocator_Proc( void* allocator_data, AllocType type, sw s
 				Arena bucket = Arena::init_from_allocator( heap(), Global_BucketSize );
 
 				if ( bucket.PhysicalStart == nullptr )
-					fatal( "Failed to create bucket for Global_AllocatorBuckets" );
+					GEN_FATAL( "Failed to create bucket for Global_AllocatorBuckets" );
 
 				if ( ! Global_AllocatorBuckets.append( bucket ) )
-					fatal( "Failed to append bucket to Global_AllocatorBuckets" );
+					GEN_FATAL( "Failed to append bucket to Global_AllocatorBuckets" );
 
 				last = &Global_AllocatorBuckets.back();
 			}
@@ -13375,10 +13331,10 @@ internal void* Global_Allocator_Proc( void* allocator_data, AllocType type, sw s
 				Arena bucket = Arena::init_from_allocator( heap(), Global_BucketSize );
 
 				if ( bucket.PhysicalStart == nullptr )
-					fatal( "Failed to create bucket for Global_AllocatorBuckets" );
+					GEN_FATAL( "Failed to create bucket for Global_AllocatorBuckets" );
 
 				if ( ! Global_AllocatorBuckets.append( bucket ) )
-					fatal( "Failed to append bucket to Global_AllocatorBuckets" );
+					GEN_FATAL( "Failed to append bucket to Global_AllocatorBuckets" );
 
 				last = &Global_AllocatorBuckets.back();
 			}
@@ -13400,7 +13356,7 @@ internal void* Global_Allocator_Proc( void* allocator_data, AllocType type, sw s
 internal void define_constants()
 {
 	Code::Global          = make_code();
-	Code::Global->Name    = get_cached_string( txt_StrC( "Global Code" ) );
+	Code::Global->Name    = get_cached_string( txt( "Global Code" ) );
 	Code::Global->Content = Code::Global->Name;
 
 	Code::Invalid         = make_code();
@@ -13408,22 +13364,22 @@ internal void define_constants()
 
 	t_empty       = ( CodeType )make_code();
 	t_empty->Type = ECode::Typename;
-	t_empty->Name = get_cached_string( txt_StrC( "" ) );
+	t_empty->Name = get_cached_string( txt( "" ) );
 	t_empty.set_global();
 
 	access_private       = make_code();
 	access_private->Type = ECode::Access_Private;
-	access_private->Name = get_cached_string( txt_StrC( "private:" ) );
+	access_private->Name = get_cached_string( txt( "private:" ) );
 	access_private.set_global();
 
 	access_protected       = make_code();
 	access_protected->Type = ECode::Access_Protected;
-	access_protected->Name = get_cached_string( txt_StrC( "protected:" ) );
+	access_protected->Name = get_cached_string( txt( "protected:" ) );
 	access_protected.set_global();
 
 	access_public       = make_code();
 	access_public->Type = ECode::Access_Public;
-	access_public->Name = get_cached_string( txt_StrC( "public:" ) );
+	access_public->Name = get_cached_string( txt( "public:" ) );
 	access_public.set_global();
 
 	attrib_api_export = def_attributes( code( GEN_API_Export_Code ) );
@@ -13434,13 +13390,13 @@ internal void define_constants()
 
 	module_global_fragment          = make_code();
 	module_global_fragment->Type    = ECode::Untyped;
-	module_global_fragment->Name    = get_cached_string( txt_StrC( "module;" ) );
+	module_global_fragment->Name    = get_cached_string( txt( "module;" ) );
 	module_global_fragment->Content = module_global_fragment->Name;
 	module_global_fragment.set_global();
 
 	module_private_fragment          = make_code();
 	module_private_fragment->Type    = ECode::Untyped;
-	module_private_fragment->Name    = get_cached_string( txt_StrC( "module : private;" ) );
+	module_private_fragment->Name    = get_cached_string( txt( "module : private;" ) );
 	module_private_fragment->Content = module_private_fragment->Name;
 	module_private_fragment.set_global();
 
@@ -13449,14 +13405,14 @@ internal void define_constants()
 	fmt_newline.set_global();
 
 	pragma_once          = ( CodePragma )make_code();
-	pragma_once->Type    = ECode::Untyped;
-	pragma_once->Name    = get_cached_string( txt_StrC( "once" ) );
+	pragma_once->Type    = ECode::Preprocess_Pragma;
+	pragma_once->Name    = get_cached_string( txt( "once" ) );
 	pragma_once->Content = pragma_once->Name;
 	pragma_once.set_global();
 
 	param_varadic            = ( CodeType )make_code();
 	param_varadic->Type      = ECode::Parameters;
-	param_varadic->Name      = get_cached_string( txt_StrC( "..." ) );
+	param_varadic->Name      = get_cached_string( txt( "..." ) );
 	param_varadic->ValueType = t_empty;
 	param_varadic.set_global();
 
@@ -13557,12 +13513,12 @@ void init()
 		Global_AllocatorBuckets = Array< Arena >::init_reserve( heap(), 128 );
 
 		if ( Global_AllocatorBuckets == nullptr )
-			fatal( "Failed to reserve memory for Global_AllocatorBuckets" );
+			GEN_FATAL( "Failed to reserve memory for Global_AllocatorBuckets" );
 
 		Arena bucket = Arena::init_from_allocator( heap(), Global_BucketSize );
 
 		if ( bucket.PhysicalStart == nullptr )
-			fatal( "Failed to create first bucket for Global_AllocatorBuckets" );
+			GEN_FATAL( "Failed to create first bucket for Global_AllocatorBuckets" );
 
 		Global_AllocatorBuckets.append( bucket );
 	}
@@ -13572,12 +13528,12 @@ void init()
 		CodePools = Array< Pool >::init_reserve( Allocator_DataArrays, InitSize_DataArrays );
 
 		if ( CodePools == nullptr )
-			fatal( "gen::init: Failed to initialize the CodePools array" );
+			GEN_FATAL( "gen::init: Failed to initialize the CodePools array" );
 
 		StringArenas = Array< Arena >::init_reserve( Allocator_DataArrays, InitSize_DataArrays );
 
 		if ( StringArenas == nullptr )
-			fatal( "gen::init: Failed to initialize the StringArenas array" );
+			GEN_FATAL( "gen::init: Failed to initialize the StringArenas array" );
 	}
 
 	// Setup the code pool and code entries arena.
@@ -13585,7 +13541,7 @@ void init()
 		Pool code_pool = Pool::init( Allocator_CodePool, CodePool_NumBlocks, sizeof( AST ) );
 
 		if ( code_pool.PhysicalStart == nullptr )
-			fatal( "gen::init: Failed to initialize the code pool" );
+			GEN_FATAL( "gen::init: Failed to initialize the code pool" );
 
 		CodePools.append( code_pool );
 
@@ -13594,7 +13550,7 @@ void init()
 		Arena string_arena = Arena::init_from_allocator( Allocator_StringArena, SizePer_StringArena );
 
 		if ( string_arena.PhysicalStart == nullptr )
-			fatal( "gen::init: Failed to initialize the string arena" );
+			GEN_FATAL( "gen::init: Failed to initialize the string arena" );
 
 		StringArenas.append( string_arena );
 	}
@@ -13604,7 +13560,7 @@ void init()
 		StringCache = StringTable::init( Allocator_StringTable );
 
 		if ( StringCache.Entries == nullptr )
-			fatal( "gen::init: Failed to initialize the StringCache" );
+			GEN_FATAL( "gen::init: Failed to initialize the StringCache" );
 	}
 
 	define_constants();
@@ -13688,7 +13644,7 @@ AllocatorInfo get_string_allocator( s32 str_length )
 		Arena new_arena = Arena::init_from_allocator( Allocator_StringArena, SizePer_StringArena );
 
 		if ( ! StringArenas.append( new_arena ) )
-			fatal( "gen::get_string_allocator: Failed to allocate a new string arena" );
+			GEN_FATAL( "gen::get_string_allocator: Failed to allocate a new string arena" );
 
 		last = &StringArenas.back();
 	}
@@ -13723,10 +13679,10 @@ Code make_code()
 		Pool code_pool = Pool::init( Allocator_CodePool, CodePool_NumBlocks, sizeof( AST ) );
 
 		if ( code_pool.PhysicalStart == nullptr )
-			fatal( "gen::make_code: Failed to allocate a new code pool - CodePool allcoator returned nullptr." );
+			GEN_FATAL( "gen::make_code: Failed to allocate a new code pool - CodePool allcoator returned nullptr." );
 
 		if ( ! CodePools.append( code_pool ) )
-			fatal( "gen::make_code: Failed to allocate a new code pool - CodePools failed to append new pool." );
+			GEN_FATAL( "gen::make_code: Failed to allocate a new code pool - CodePools failed to append new pool." );
 
 		allocator = &CodePools.back();
 	}
@@ -17442,8 +17398,8 @@ internal void deinit_parser()
 #define check_noskip( Type_ ) ( left && currtok_noskip.Type == Type_ )
 #define check( Type_ )        ( left && currtok.Type == Type_ )
 
-#define push_scope()                                                       \
-	StackNode scope { nullptr, currtok, NullToken, txt_StrC( __func__ ) }; \
+#define push_scope()                                                  \
+	StackNode scope { nullptr, currtok, NullToken, txt( __func__ ) }; \
 	Context.push( &scope )
 
 #pragma endregion Helper Macros
@@ -17638,7 +17594,7 @@ internal inline Code parse_static_assert()
 
 	char const* result = str_fmt_buf( "%.*s\n", content.Length, content.Text );
 
-	assert->Content    = get_cached_string( to_StrC( result ) );
+	assert->Content    = get_cached_string( to_str( result ) );
 	assert->Name       = assert->Content;
 
 	Context.pop();
@@ -18469,7 +18425,7 @@ internal inline CodeVar parse_variable_after_name( ModuleFlag mflags, CodeAttrib
 			eat( currtok.Type );
 		}
 
-		expr_tok.Length = ( ( sptr )currtok.Text + currtok.Length ) - ( sptr )expr_tok.Text;
+		expr_tok.Length = ( ( sptr )prevtok.Text + prevtok.Length ) - ( sptr )expr_tok.Text;
 		bitfield_expr   = untyped_str( expr_tok );
 	}
 
@@ -18534,7 +18490,7 @@ internal inline Code parse_simple_preprocess( Parser::TokType which )
 
 	char const* content = str_fmt_buf( "%.*s\n", tok.Length, tok.Text );
 
-	Code result         = untyped_str( to_StrC( content ) );
+	Code result         = untyped_str( to_str( content ) );
 	Context.Scope->Name = tok;
 
 	if ( str_compare( Context.Scope->Prev->ProcName.Ptr, "parse_typedef", Context.Scope->Prev->ProcName.Len ) != 0 )
