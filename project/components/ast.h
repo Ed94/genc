@@ -1,4 +1,4 @@
-#pragma region Data Structures
+#pragma region AST
 
 #define GEN_AST_POD_SIZE 128
 #define GEN_AST_ARRSPECS_CAP     \
@@ -26,7 +26,10 @@ struct gen_AST
 				gen_Code  UnderlyingType; // Enum, Typedef (C++ 20 supports underlying type for enum)
 				gen_Code  ValueType;      // Parameter, Variable
 			};
-			gen_AST*      Params;         // Function, Generic, Template_Macro
+			union {
+				gen_Code  BitfieldSize;   // Variable (Struct Data Member)
+				gen_Code  Params;         // Function, Generic, Template_Macro
+			};
 			union {
 				gen_Code  ArrExpr;        // Type Symbol
 				gen_Code  Body;           // Enum, Function, Struct, Union
@@ -48,10 +51,13 @@ struct gen_AST
 	gen_Code              Parent;
 	gen_StringCached      Name;
 	gen_CodeT             Type;
-	gen_s32               NumEntries;
+	union {
+		gen_b32           IsFunction; // Used by typedef to not serialize the name field.
+		gen_s32           NumEntries;
+	};
 };
 
-#pragma region Filtered ASTs
+#pragma region AST Types
 /*
 	Show only relevant members of the gen_AST for its type.
 	gen_AST* fields are replaced with gen_AST* types.
@@ -340,12 +346,14 @@ struct gen_AST_Var
 	char 			           _PAD_UNUSED_[ sizeof(gen_s32) ];
 };
 static_assert( sizeof(gen_AST_Var) == sizeof(gen_AST), "ERROR: AST_Var is not the same size as gen_AST");
-#pragma endregion Filtered ASTs
+
+#pragma endregion AST Types
 
 #define NoCode NULL
 extern gen_Code gen_CodeInvalid;
 
 #pragma region Code Interface
+
 void       gen_code_debug_string   ( gen_Code     self );
 gen_Code   gen_code_duplicate      ( gen_Code     self );
 gen_Code   gen_code_entry          ( gen_Code     self, gen_s32 idx );
@@ -370,6 +378,8 @@ bool       gen_codebody_validate   ( gen_CodeBody self );
 
 #define gen_codeparams_begin( params ) gen_CodeParams entry = params->ArrSpecs[0]
 #define gen_codeparams_end( params )   params->ArrSpecs + params->NumEntries
+
 #pragma endregion Code Interface
 
-#pragma endregion Data Structure
+#pragma endregion AST
+

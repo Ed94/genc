@@ -411,3 +411,4 @@ GEN_IMPL_INLINE gen_b32 gen_file_write( gen_FileInfo* f, void const* buffer, gen
 }
 
 #pragma endregion Filesystem
+

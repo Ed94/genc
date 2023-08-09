@@ -14,3 +14,4 @@ typedef char*       gen_String;
 typedef char const* gen_StringCached;
 
 #pragma endregion Strings
+

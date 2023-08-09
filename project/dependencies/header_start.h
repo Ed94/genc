@@ -113,10 +113,13 @@
 #pragma endregion Platform Detection
 
 #pragma region Mandatory Includes
+
 #	include <stdarg.h>
 #	include <stddef.h>
 
 #	if defined( GEN_SYSTEM_WINDOWS )
 #		include <intrin.h>
 #	endif
+
 #pragma endregion Mandatory Includes
+

@@ -93,14 +93,14 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 		void       <fn>_set         ( <tbl_type>* self, gen_u64 key, <type> value );
 		gen_sw     <fn>_slot        ( <tbl_type> self, gen_u64 key );
 
-		gen_sw             <fn>__add_entry( <tbl_type>* self, gen_u64 key );
+		gen_sw             <fn>__add_entry( <tbl_type> self, gen_u64 key );
 		gen_HT_FindResult  <fn>__find     ( <tbl_type> self, gen_u64 key );
 		gen_b32            <fn>__full     ( <tbl_type> self );
 
 		<tbl_type> <fn>_make( gen_AllocatorInfo allocator )
 		{
 			<tbl_type>
-			result        = { nullptr, nullptr };
+			result        = { NULL, NULL };
 			result.Hashes  = gen_array_sw_make( allocator );
 			result.Entries = <fn_array>_make( allocator );
 
@@ -110,7 +110,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 		<tbl_type> <fn>_make_reserve( gen_AllocatorInfo allocator, gen_sw num )
 		{
 			<tbl_type>
-			result         = { nullptr, nullptr };
+			result         = { NULL, NULL };
 			result.Hashes  = gen_array_sw_make_reserve( allocator, num );
 			result.Entries = <fn_array>_make_reserve( allocator, num );
 
@@ -170,7 +170,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 			<fn>_rehash( self, new_num );
 		}
 
-		void <fn>_rehash( <tbl_type>* self )
+		void <fn>_rehash( <tbl_type>* self, gen_sw new_num )
 		{
 			gen_sw idx;
 			gen_sw last_added_index;
@@ -267,7 +267,7 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 			}
 			else
 			{
-				idx = <fn>__add_entry( self, key );
+				idx = <fn>__add_entry( * self, key );
 
 				if ( find_result.PrevIndex >= 0 )
 				{
@@ -344,13 +344,14 @@ CodeBody gen_hashtable( StrC type, StrC hashtable_name )
 		, type.Len, type.Ptr );
 
 	return def_global_body(args(
+		def_pragma( to_StrC( str_fmt_buf( "region %S", tbl_type ))),
 		fmt_newline,
-		def_comment( to_StrC( cmt_str ) ),
 		hashtable_types,
 		fmt_newline,
 		entry_array,
-		fmt_newline,
 		hashtable_def,
+		fmt_newline,
+		def_pragma( to_StrC( str_fmt_buf( "endregion %S", tbl_type ))),
 		fmt_newline
 	));
 }

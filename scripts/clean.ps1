@@ -27,7 +27,11 @@ if ( Test-Path $path_test_build )
 }
 }
 
-[string[]] $include = 'genc.h', 'genc.c', 'genc_dep.h', 'genc_dep.c'
+[string[]] $include = 'genc.h', 'genc.c',
+	'genc.dep.h', 'genc.dep.c',
+	'genc_builder.h', 'genc_builder.c',
+	'genc_editor.h', 'genc_editor.c',
+	'genc_scanner.h', 'genc_scanner.c'
 [string[]] $exclude =
 
 $files = Get-ChildItem -Recurse -Path $path_project -Include $include -Exclude $exclude

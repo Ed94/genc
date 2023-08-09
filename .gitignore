@@ -1,9 +1,9 @@
 .idea
 
 build/*
-project/genc.h
-project/genc.dep.h
-project/genc.c
+**/genc.dep.h
+**/genc.dep.c
+**/genc.*
 
 
 ## Ignore Visual Studio temporary files, build results, and

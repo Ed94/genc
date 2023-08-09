@@ -33,3 +33,4 @@ gen_sw gen_log_fmt(char const* fmt, ...)
 }
 
 #pragma endregion Printing
+

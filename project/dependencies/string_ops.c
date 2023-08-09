@@ -1,6 +1,6 @@
 #pragma region String Ops
 
-gen_internal gen_sw gen__scan_zpl_i64( const char* text, gen_s32 base, gen_s64* value )
+internal gen_sw gen__scan_zpl_i64( const char* text, gen_s32 base, gen_s64* value )
 {
 	const char* text_begin = text;
 	gen_s64     result     = 0;
@@ -206,3 +206,4 @@ void gen_u64_to_str( gen_u64 value, char* string, gen_s32 base )
 }
 
 #pragma endregion String Ops
+

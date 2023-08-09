@@ -880,7 +880,7 @@ void process_exit( u32 code );
 #define fatal( fmt, ... )                       \
 	do                                          \
 	{                                           \
-		str_fmt_out_err_va( fmt, __VA_ARGS__ ); \
+		str_fmt_out_err( fmt, __VA_ARGS__ );    \
 		process_exit( 1 );                      \
 	} while ( 0 )
 #endif

@@ -12,3 +12,4 @@ GEN_DEF gen_u64 gen_time_rel_ms( void );
 #endif
 
 #pragma endregion Timing
+

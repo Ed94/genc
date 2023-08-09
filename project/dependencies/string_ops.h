@@ -286,3 +286,4 @@ GEN_IMPL_INLINE void gen_str_to_upper( char* str )
 }
 
 #pragma endregion String Ops
+

@@ -117,5 +117,19 @@ typedef gen_s8  gen_b8;
 typedef gen_s16 gen_b16;
 typedef gen_s32 gen_b32;
 
+#if ! defined( __cplusplus )
+#	if ( defined( _MSC_VER ) && _MSC_VER < 1800 ) || ( ! defined( _MSC_VER ) && ! defined( __STDC_VERSION__ ) )
+#		ifndef true
+#			define true( 0 == 0 )
+#		endif
+#		ifndef false
+#			define false( 0 != 0 )
+#		endif
+typedef gen_b8 bool;
+#	else
+#		include <stdbool.h>
+#	endif
+#endif
+
 #pragma endregion Basic Types
 

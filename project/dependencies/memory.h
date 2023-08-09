@@ -53,9 +53,6 @@ GEN_DEF_INLINE void* gen_mem_move( void* dest, void const* source, gen_sw size )
 //! Set constant value at memory location with specified size.
 GEN_DEF_INLINE void* gen_mem_set( void* data, gen_u8 byte_value, gen_sw size );
 
-//! Compare two memory locations with specified size.
-GEN_DEF_INLINE gen_s32 gen_memcompare( void const* s1, void const* s2, gen_sw size );
-
 //! Swap memory contents between 2 locations with size.
 void gen_mem_swap( void* i, void* j, gen_sw size );
 
@@ -705,3 +702,4 @@ GEN_IMPL_INLINE gen_AllocatorInfo gen_pool_allocator( gen_Pool* pool )
 }
 
 #pragma endregion Memory
+

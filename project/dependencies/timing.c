@@ -1,3 +1,5 @@
+#pragma region Timing
+
 #ifdef GEN_BENCHMARK
 #if defined( GEN_COMPILER_MSVC ) && ! defined( __clang__ )
 gen_u64 gen_read_cpu_time_stamp_counter( void )
@@ -83,3 +85,6 @@ gen_u64 gen_read_cpu_time_stamp_counter( void )
 
 // GEN_BENCHMARK
 #endif
+
+#pragma endregion Timing
+

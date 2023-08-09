@@ -18,7 +18,9 @@
 		"algorithm": "cpp",
 		"limits": "cpp",
 		"concepts": "cpp",
-		"*.rh": "cpp"
+		"*.rh": "cpp",
+		"stdio.h": "c",
+		"genc.dep.h": "c"
 	},
 	"C_Cpp.intelliSenseEngineFallback": "disabled",
 	"mesonbuild.configureOnOpen": true,
